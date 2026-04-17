@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/gosre/gosre-cli/internal/check"
+	"github.com/gosre/gosre-cli/internal/config"
 	"github.com/gosre/gosre-cli/internal/output"
 )
 
@@ -23,16 +24,31 @@ var checkTCPCmd = &cobra.Command{
 }
 
 func init() {
-	checkTCPCmd.Flags().StringP("address", "a", "", "host:port to check (required)")
-	_ = checkTCPCmd.MarkFlagRequired("address")
+	checkTCPCmd.Flags().StringP("address", "a", "", "host:port to check")
+	checkTCPCmd.Flags().StringP("target-name", "n", "", "target name from ~/.gosre.yaml (overrides --address)")
 	checkCmd.AddCommand(checkTCPCmd)
 }
 
 func runCheckTCP(cmd *cobra.Command, _ []string) error {
 	address, _ := cmd.Flags().GetString("address")
+	targetName, _ := cmd.Flags().GetString("target-name")
 	timeoutStr, _ := cmd.Flags().GetString("timeout")
 	outputFmt, _ := cmd.Flags().GetString("output")
 	quiet, _ := cmd.Flags().GetBool("quiet")
+
+	if targetName != "" {
+		cfg, err := config.Load()
+		if err != nil {
+			return fmt.Errorf("load config: %w", err)
+		}
+		t, err := cfg.FindTarget(targetName)
+		if err != nil {
+			return err
+		}
+		address = t.Address
+	} else if address == "" {
+		return fmt.Errorf("--address or --target-name required")
+	}
 
 	timeout, err := time.ParseDuration(timeoutStr)
 	if err != nil {

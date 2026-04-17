@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/gosre/gosre-cli/internal/check"
+	"github.com/gosre/gosre-cli/internal/config"
 	"github.com/gosre/gosre-cli/internal/output"
 )
 
@@ -23,18 +24,33 @@ var checkDNSCmd = &cobra.Command{
 }
 
 func init() {
-	checkDNSCmd.Flags().StringP("address", "a", "", "hostname to resolve (required)")
-	_ = checkDNSCmd.MarkFlagRequired("address")
+	checkDNSCmd.Flags().StringP("address", "a", "", "hostname to resolve")
+	checkDNSCmd.Flags().StringP("target-name", "n", "", "target name from ~/.gosre.yaml (overrides --address)")
 	checkDNSCmd.Flags().String("record-type", "A", "DNS record type: A, AAAA, CNAME, MX")
 	checkCmd.AddCommand(checkDNSCmd)
 }
 
 func runCheckDNS(cmd *cobra.Command, _ []string) error {
 	address, _ := cmd.Flags().GetString("address")
+	targetName, _ := cmd.Flags().GetString("target-name")
 	recordType, _ := cmd.Flags().GetString("record-type")
 	timeoutStr, _ := cmd.Flags().GetString("timeout")
 	outputFmt, _ := cmd.Flags().GetString("output")
 	quiet, _ := cmd.Flags().GetBool("quiet")
+
+	if targetName != "" {
+		cfg, err := config.Load()
+		if err != nil {
+			return fmt.Errorf("load config: %w", err)
+		}
+		t, err := cfg.FindTarget(targetName)
+		if err != nil {
+			return err
+		}
+		address = t.Address
+	} else if address == "" {
+		return fmt.Errorf("--address or --target-name required")
+	}
 
 	timeout, err := time.ParseDuration(timeoutStr)
 	if err != nil {
