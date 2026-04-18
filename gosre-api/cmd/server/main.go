@@ -80,6 +80,7 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(middleware.CORS())
 	router.Use(middleware.APIKey())
 
 	router.GET("/healthz", v1.HealthHandler)
