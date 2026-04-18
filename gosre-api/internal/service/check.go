@@ -18,10 +18,11 @@ const defaultCheckTimeout = 10 * time.Second
 
 // CheckService handles business logic for CheckConfig entities.
 type CheckService struct {
-	store    store.CheckStore
-	targets  store.TargetStore
-	results  *ResultService
-	checkers map[domain.CheckType]domain.Checker
+	store     store.CheckStore
+	targets   store.TargetStore
+	results   *ResultService
+	incidents *IncidentService
+	checkers  map[domain.CheckType]domain.Checker
 }
 
 // NewCheckService constructs a CheckService with its runtime dependencies.
@@ -29,13 +30,15 @@ func NewCheckService(
 	s store.CheckStore,
 	targets store.TargetStore,
 	results *ResultService,
+	incidents *IncidentService,
 	checkers map[domain.CheckType]domain.Checker,
 ) *CheckService {
 	return &CheckService{
-		store:    s,
-		targets:  targets,
-		results:  results,
-		checkers: checkers,
+		store:     s,
+		targets:   targets,
+		results:   results,
+		incidents: incidents,
+		checkers:  checkers,
 	}
 }
 
@@ -103,6 +106,10 @@ func (svc *CheckService) Run(ctx context.Context, id string) (domain.Result, err
 	saved, err := svc.results.Save(ctx, r)
 	if err != nil {
 		return domain.Result{}, fmt.Errorf("save result: %w", err)
+	}
+
+	if err := svc.incidents.Process(ctx, saved); err != nil {
+		return domain.Result{}, fmt.Errorf("process incident: %w", err)
 	}
 	return saved, nil
 }

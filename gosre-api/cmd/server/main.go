@@ -52,7 +52,10 @@ func main() {
 	resultSvc := service.NewResultService(db.ResultStore())
 	resultHandler := v1.NewResultHandler(resultSvc)
 
-	checkSvc := service.NewCheckService(db.CheckStore(), db, resultSvc, checkers)
+	incidentSvc := service.NewIncidentService(db.IncidentStore(), db.ResultStore())
+	incidentHandler := v1.NewIncidentHandler(incidentSvc)
+
+	checkSvc := service.NewCheckService(db.CheckStore(), db, resultSvc, incidentSvc, checkers)
 	checkHandler := v1.NewCheckHandler(checkSvc)
 
 	router := gin.New()
@@ -73,6 +76,9 @@ func main() {
 
 	api.GET("/results", resultHandler.ListResults)
 	api.GET("/results/:id", resultHandler.GetResult)
+
+	api.GET("/incidents", incidentHandler.ListIncidents)
+	api.PATCH("/incidents/:id", incidentHandler.PatchIncident)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
