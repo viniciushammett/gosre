@@ -1,0 +1,233 @@
+// Copyright 2026 Vinicius Teixeira
+// Licensed under the Apache License, Version 2.0
+
+package collector
+
+import (
+	"context"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
+
+	"github.com/gosre/gosre-exporter/internal/apiclient"
+	"github.com/gosre/gosre-sdk/domain"
+)
+
+// ensure Collector implements prometheus.Collector at compile time.
+var _ prometheus.Collector = (*Collector)(nil)
+
+var histogramBuckets = []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}
+
+// Collector implements prometheus.Collector for gosre-api metrics.
+type Collector struct {
+	client     *apiclient.Client
+	logger     *zap.Logger
+	apiTimeout time.Duration
+
+	targetUp         *prometheus.Desc
+	checkResultTotal *prometheus.Desc
+	checkDuration    *prometheus.Desc
+	incidentTotal    *prometheus.Desc
+	agentUp          *prometheus.Desc
+}
+
+// New constructs a Collector backed by the given API client.
+// apiTimeout controls the deadline for each scrape's API calls (use poll interval / 2).
+func New(client *apiclient.Client, apiTimeout time.Duration, logger *zap.Logger) *Collector {
+	return &Collector{
+		client:     client,
+		logger:     logger,
+		apiTimeout: apiTimeout,
+		targetUp: prometheus.NewDesc(
+			"gosre_target_up",
+			"1 if the most recent check result for this target was ok, 0 otherwise.",
+			[]string{"target_id", "target_name", "target_type"},
+			nil,
+		),
+		checkResultTotal: prometheus.NewDesc(
+			"gosre_check_result_total",
+			"Total number of check results by target, check type, and status.",
+			[]string{"target_id", "check_type", "status"},
+			nil,
+		),
+		checkDuration: prometheus.NewDesc(
+			"gosre_check_duration_seconds",
+			"Duration of check executions in seconds.",
+			[]string{"target_id", "check_type"},
+			nil,
+		),
+		incidentTotal: prometheus.NewDesc(
+			"gosre_incident_total",
+			"Number of incidents per target and state.",
+			[]string{"target_id", "state"},
+			nil,
+		),
+		agentUp: prometheus.NewDesc(
+			"gosre_agent_up",
+			"1 if the agent is reachable (stub: Phase 4).",
+			nil,
+			nil,
+		),
+	}
+}
+
+// Describe sends all metric descriptors to ch.
+func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
+	ch <- c.targetUp
+	ch <- c.checkResultTotal
+	ch <- c.checkDuration
+	ch <- c.incidentTotal
+	ch <- c.agentUp
+}
+
+// Collect fetches live data from gosre-api and sends metrics to ch.
+func (c *Collector) Collect(ch chan<- prometheus.Metric) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.apiTimeout)
+	defer cancel()
+
+	targets, err := c.client.ListTargets(ctx)
+	if err != nil {
+		c.logger.Error("collect: list targets", zap.Error(err))
+		return
+	}
+
+	checks, err := c.client.ListChecks(ctx)
+	if err != nil {
+		c.logger.Error("collect: list checks", zap.Error(err))
+		return
+	}
+
+	results, err := c.client.ListResults(ctx)
+	if err != nil {
+		c.logger.Error("collect: list results", zap.Error(err))
+		return
+	}
+
+	incidents, err := c.client.ListIncidents(ctx)
+	if err != nil {
+		c.logger.Error("collect: list incidents", zap.Error(err))
+		return
+	}
+
+	// Build check_id → check_type index.
+	checkType := make(map[string]string, len(checks))
+	for _, ck := range checks {
+		checkType[ck.ID] = string(ck.Type)
+	}
+
+	// Build target index for label lookup.
+	targetByID := make(map[string]domain.Target, len(targets))
+	for _, t := range targets {
+		targetByID[t.ID] = t
+	}
+
+	c.collectTargetUp(ch, targets, results)
+	c.collectCheckResults(ch, results, checkType)
+	c.collectCheckDuration(ch, results, checkType)
+	c.collectIncidents(ch, incidents)
+
+	// gosre_agent_up: stub — Phase 4
+	ch <- prometheus.MustNewConstMetric(c.agentUp, prometheus.GaugeValue, 0)
+}
+
+func (c *Collector) collectTargetUp(ch chan<- prometheus.Metric, targets []domain.Target, results []domain.Result) {
+	// results are ordered timestamp DESC — first occurrence per target is the latest.
+	latestStatus := make(map[string]domain.CheckStatus, len(targets))
+	for _, r := range results {
+		if _, seen := latestStatus[r.TargetID]; !seen {
+			latestStatus[r.TargetID] = r.Status
+		}
+	}
+
+	for _, t := range targets {
+		up := 0.0
+		if latestStatus[t.ID] == domain.StatusOK {
+			up = 1.0
+		}
+		ch <- prometheus.MustNewConstMetric(
+			c.targetUp, prometheus.GaugeValue, up,
+			t.ID, t.Name, string(t.Type),
+		)
+	}
+}
+
+func (c *Collector) collectCheckResults(ch chan<- prometheus.Metric, results []domain.Result, checkType map[string]string) {
+	type key struct {
+		targetID  string
+		checkType string
+		status    string
+	}
+	counts := make(map[key]float64)
+	for _, r := range results {
+		ct := checkType[r.CheckID]
+		k := key{r.TargetID, ct, string(r.Status)}
+		counts[k]++
+	}
+	for k, n := range counts {
+		ch <- prometheus.MustNewConstMetric(
+			c.checkResultTotal, prometheus.CounterValue, n,
+			k.targetID, k.checkType, k.status,
+		)
+	}
+}
+
+func (c *Collector) collectCheckDuration(ch chan<- prometheus.Metric, results []domain.Result, checkType map[string]string) {
+	type key struct {
+		targetID  string
+		checkType string
+	}
+	type stats struct {
+		count   uint64
+		sum     float64
+		buckets map[float64]uint64
+	}
+
+	groups := make(map[key]*stats)
+	for _, r := range results {
+		ct := checkType[r.CheckID]
+		k := key{r.TargetID, ct}
+		if groups[k] == nil {
+			b := make(map[float64]uint64, len(histogramBuckets))
+			for _, bound := range histogramBuckets {
+				b[bound] = 0
+			}
+			groups[k] = &stats{buckets: b}
+		}
+		s := groups[k]
+		durationSec := float64(r.Duration) / float64(time.Second)
+		s.count++
+		s.sum += durationSec
+		for _, bound := range histogramBuckets {
+			if durationSec <= bound {
+				s.buckets[bound]++
+			}
+		}
+	}
+
+	for k, s := range groups {
+		ch <- prometheus.MustNewConstHistogram(
+			c.checkDuration,
+			s.count, s.sum, s.buckets,
+			k.targetID, k.checkType,
+		)
+	}
+}
+
+func (c *Collector) collectIncidents(ch chan<- prometheus.Metric, incidents []domain.Incident) {
+	type key struct {
+		targetID string
+		state    string
+	}
+	counts := make(map[key]float64)
+	for _, i := range incidents {
+		k := key{i.TargetID, string(i.State)}
+		counts[k]++
+	}
+	for k, n := range counts {
+		ch <- prometheus.MustNewConstMetric(
+			c.incidentTotal, prometheus.GaugeValue, n,
+			k.targetID, k.state,
+		)
+	}
+}
