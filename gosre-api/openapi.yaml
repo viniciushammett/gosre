@@ -1,0 +1,501 @@
+openapi: "3.0.3"
+
+info:
+  title: GoSRE API
+  description: REST API for the GoSRE monitoring platform.
+  version: "0.1.0"
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      operationId: healthz
+      tags: [system]
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  version:
+                    type: string
+                    example: "0.1.0"
+
+  /targets:
+    get:
+      summary: List targets
+      operationId: listTargets
+      tags: [targets]
+      security:
+        - apiKey: []
+      responses:
+        "200":
+          description: List of targets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TargetListResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+    post:
+      summary: Create a target
+      operationId: createTarget
+      tags: [targets]
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Target"
+      responses:
+        "201":
+          description: Target created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TargetResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /targets/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+
+    get:
+      summary: Get a target
+      operationId: getTarget
+      tags: [targets]
+      security:
+        - apiKey: []
+      responses:
+        "200":
+          description: Target found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TargetResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+    delete:
+      summary: Delete a target
+      operationId: deleteTarget
+      tags: [targets]
+      security:
+        - apiKey: []
+      responses:
+        "204":
+          description: Target deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /checks:
+    get:
+      summary: List check configs
+      operationId: listChecks
+      tags: [checks]
+      security:
+        - apiKey: []
+      responses:
+        "200":
+          description: List of check configs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckConfigListResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+    post:
+      summary: Create a check config
+      operationId: createCheck
+      tags: [checks]
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckConfig"
+      responses:
+        "201":
+          description: Check config created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckConfigResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /checks/{id}/run:
+    parameters:
+      - $ref: "#/components/parameters/id"
+
+    post:
+      summary: Execute a check immediately
+      operationId: runCheck
+      tags: [checks]
+      security:
+        - apiKey: []
+      responses:
+        "200":
+          description: Check executed, result returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /results:
+    get:
+      summary: List results
+      operationId: listResults
+      tags: [results]
+      security:
+        - apiKey: []
+      parameters:
+        - name: target_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by target ID
+      responses:
+        "200":
+          description: List of results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultListResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /results/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+
+    get:
+      summary: Get a result
+      operationId: getResult
+      tags: [results]
+      security:
+        - apiKey: []
+      responses:
+        "200":
+          description: Result found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /incidents:
+    get:
+      summary: List incidents
+      operationId: listIncidents
+      tags: [incidents]
+      security:
+        - apiKey: []
+      parameters:
+        - name: state
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/IncidentState"
+          description: Filter by state. Omit to return all incidents.
+      responses:
+        "200":
+          description: List of incidents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncidentListResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /incidents/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+
+    patch:
+      summary: Update incident state
+      operationId: patchIncident
+      tags: [incidents]
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [state]
+              properties:
+                state:
+                  $ref: "#/components/schemas/IncidentState"
+      responses:
+        "200":
+          description: Incident updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncidentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    # ── Domain types ──────────────────────────────────────────────────────────
+
+    TargetType:
+      type: string
+      enum: [http, tcp, dns, tls]
+
+    Target:
+      type: object
+      required: [name, type, address]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/TargetType"
+        address:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+
+    CheckType:
+      type: string
+      enum: [http, tcp, dns, tls]
+
+    CheckConfig:
+      type: object
+      required: [type, target_id]
+      properties:
+        id:
+          type: string
+        type:
+          $ref: "#/components/schemas/CheckType"
+        target_id:
+          type: string
+        interval:
+          type: integer
+          description: Check interval in nanoseconds (time.Duration).
+        timeout:
+          type: integer
+          description: Check timeout in nanoseconds (time.Duration).
+        params:
+          type: object
+          additionalProperties:
+            type: string
+
+    CheckStatus:
+      type: string
+      enum: [ok, fail, timeout, unknown]
+
+    Result:
+      type: object
+      properties:
+        id:
+          type: string
+        check_id:
+          type: string
+        target_id:
+          type: string
+        agent_id:
+          type: string
+        status:
+          $ref: "#/components/schemas/CheckStatus"
+        duration_ms:
+          type: integer
+          description: Check duration in nanoseconds (time.Duration serialized as int64).
+        error:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+
+    IncidentState:
+      type: string
+      enum: [open, acknowledged, resolved]
+
+    Incident:
+      type: object
+      properties:
+        id:
+          type: string
+        target_id:
+          type: string
+        state:
+          $ref: "#/components/schemas/IncidentState"
+        first_seen:
+          type: string
+          format: date-time
+        last_seen:
+          type: string
+          format: date-time
+        result_ids:
+          type: array
+          items:
+            type: string
+
+    # ── Response envelope ─────────────────────────────────────────────────────
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+    TargetResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Target"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    TargetListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Target"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    CheckConfigResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/CheckConfig"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    CheckConfigListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CheckConfig"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    ResultResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Result"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    ResultListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Result"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    IncidentResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Incident"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    IncidentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Incident"
+        error:
+          $ref: "#/components/schemas/Error"
+
+  responses:
+    BadRequest:
+      description: Invalid request body or parameters
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TargetResponse"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TargetResponse"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TargetResponse"

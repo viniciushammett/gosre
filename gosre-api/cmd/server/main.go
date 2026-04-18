@@ -18,6 +18,7 @@ import (
 
 	v1 "github.com/gosre/gosre-api/internal/api/v1"
 	"github.com/gosre/gosre-api/internal/check"
+	"github.com/gosre/gosre-api/internal/middleware"
 	"github.com/gosre/gosre-api/internal/service"
 	"github.com/gosre/gosre-api/internal/store/sqlite"
 )
@@ -61,6 +62,7 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(middleware.APIKey())
 
 	router.GET("/healthz", v1.HealthHandler)
 
