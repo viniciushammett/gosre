@@ -89,6 +89,7 @@ func main() {
 	api.GET("/targets", targetHandler.ListTargets)
 	api.POST("/targets", targetHandler.CreateTarget)
 	api.GET("/targets/:id", targetHandler.GetTarget)
+	api.PUT("/targets/:id", targetHandler.UpdateTarget)
 	api.DELETE("/targets/:id", targetHandler.DeleteTarget)
 
 	api.GET("/checks", checkHandler.ListChecks)

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listIncidents, patchIncident } from "../api/incidents";
+import { listTargets } from "../api/targets";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
 import EmptyState from "../components/EmptyState";
@@ -23,10 +24,21 @@ export default function Incidents() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<IncidentState | undefined>(undefined);
 
+  const targets = useQuery({ queryKey: ["targets"], queryFn: listTargets });
   const { data, isLoading, error } = useQuery({
     queryKey: ["incidents", filter],
     queryFn: () => listIncidents(filter),
   });
+
+  const targetMap = Object.fromEntries(
+    (targets.data ?? []).map((t) => [t.id, t.name])
+  );
+
+  function resolveTarget(id?: string) {
+    if (!id) return "—";
+    if (targetMap[id]) return <span className="text-white">{targetMap[id]}</span>;
+    return <code className="text-gray-500 font-mono">{id.slice(0, 4)}…{id.slice(-3)}</code>;
+  }
 
   const patch = useMutation({
     mutationFn: ({ id, state }: { id: string; state: IncidentState }) =>
@@ -37,7 +49,7 @@ export default function Incidents() {
     },
   });
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading || targets.isLoading) return <LoadingSpinner />;
 
   return (
     <div className="p-6">
@@ -60,7 +72,7 @@ export default function Incidents() {
         ))}
       </div>
 
-      <ErrorMessage error={(error ?? patch.error) as Error | null} />
+      <ErrorMessage error={(error ?? targets.error ?? patch.error) as Error | null} />
 
       {(!data || data.length === 0) ? (
         <EmptyState message="No incidents found." />
@@ -79,7 +91,7 @@ export default function Incidents() {
             <tbody className="divide-y divide-surface-border">
               {data.map((inc) => (
                 <tr key={inc.id} className="hover:bg-surface-border/30 transition-colors">
-                  <td className="px-4 py-3 text-white font-mono text-xs">{inc.target_id}</td>
+                  <td className="px-4 py-3 text-sm">{resolveTarget(inc.target_id)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={inc.state ?? "open"} />
                   </td>

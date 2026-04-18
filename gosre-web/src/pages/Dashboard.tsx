@@ -40,6 +40,16 @@ export default function Dashboard() {
 
   const latestResult = results.data?.[0];
 
+  const targetMap = Object.fromEntries(
+    (targets.data ?? []).map((t) => [t.id, t.name])
+  );
+
+  function resolveTarget(id?: string) {
+    if (!id) return "—";
+    if (targetMap[id]) return <span>{targetMap[id]}</span>;
+    return <code className="text-gray-500 font-mono">{id.slice(0, 4)}…{id.slice(-3)}</code>;
+  }
+
   if (isLoading) return <LoadingSpinner />;
 
   return (
@@ -87,7 +97,7 @@ export default function Dashboard() {
             {incidents.data!.map((inc) => (
               <div key={inc.id} className="flex items-center justify-between px-4 py-3">
                 <div>
-                  <span className="text-sm text-white font-mono">{inc.target_id}</span>
+                  <span className="text-sm text-white">{resolveTarget(inc.target_id)}</span>
                   {inc.first_seen && (
                     <span className="ml-3 text-xs text-gray-500">
                       since {new Date(inc.first_seen).toLocaleString()}

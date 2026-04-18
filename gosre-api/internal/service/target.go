@@ -59,6 +59,28 @@ func (svc *TargetService) Get(ctx context.Context, id string) (domain.Target, er
 	return svc.store.Get(ctx, id)
 }
 
+// Update validates and persists changes to an existing Target.
+func (svc *TargetService) Update(ctx context.Context, id string, t domain.Target) (domain.Target, error) {
+	if t.Name == "" {
+		return domain.Target{}, fmt.Errorf("name is required")
+	}
+	if t.Address == "" {
+		return domain.Target{}, fmt.Errorf("address is required")
+	}
+	existing, err := svc.store.Get(ctx, id)
+	if err != nil {
+		return domain.Target{}, err
+	}
+	existing.Name = t.Name
+	existing.Type = t.Type
+	existing.Address = t.Address
+	existing.Tags = t.Tags
+	if err := svc.store.Save(ctx, existing); err != nil {
+		return domain.Target{}, fmt.Errorf("update target: %w", err)
+	}
+	return existing, nil
+}
+
 // List returns all stored targets.
 func (svc *TargetService) List(ctx context.Context) ([]domain.Target, error) {
 	return svc.store.List(ctx)
