@@ -20,6 +20,7 @@ import (
 	"github.com/gosre/gosre-api/internal/check"
 	"github.com/gosre/gosre-api/internal/middleware"
 	"github.com/gosre/gosre-api/internal/service"
+	"github.com/gosre/gosre-api/internal/store/postgres"
 	"github.com/gosre/gosre-api/internal/store/sqlite"
 )
 
@@ -35,11 +36,6 @@ func main() {
 		port = "8080"
 	}
 
-	db, err := sqlite.New("gosre.db")
-	if err != nil {
-		logger.Fatal("open store", zap.Error(err))
-	}
-
 	checkers := map[domain.CheckType]domain.Checker{
 		domain.CheckTypeHTTP: check.NewHTTPChecker(),
 		domain.CheckTypeTCP:  check.NewTCPChecker(),
@@ -47,16 +43,38 @@ func main() {
 		domain.CheckTypeTLS:  check.NewTLSChecker(),
 	}
 
-	targetSvc := service.NewTargetService(db)
+	var (
+		targetSvc   *service.TargetService
+		resultSvc   *service.ResultService
+		incidentSvc *service.IncidentService
+		checkSvc    *service.CheckService
+	)
+
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		logger.Info("using postgres store", zap.String("url", dbURL))
+		pg, err := postgres.New(dbURL)
+		if err != nil {
+			logger.Fatal("open postgres store", zap.Error(err))
+		}
+		targetSvc = service.NewTargetService(pg)
+		resultSvc = service.NewResultService(pg.ResultStore())
+		incidentSvc = service.NewIncidentService(pg.IncidentStore(), pg.ResultStore())
+		checkSvc = service.NewCheckService(pg.CheckStore(), pg, resultSvc, incidentSvc, checkers)
+	} else {
+		logger.Info("using sqlite store", zap.String("path", "gosre.db"))
+		lite, err := sqlite.New("gosre.db")
+		if err != nil {
+			logger.Fatal("open sqlite store", zap.Error(err))
+		}
+		targetSvc = service.NewTargetService(lite)
+		resultSvc = service.NewResultService(lite.ResultStore())
+		incidentSvc = service.NewIncidentService(lite.IncidentStore(), lite.ResultStore())
+		checkSvc = service.NewCheckService(lite.CheckStore(), lite, resultSvc, incidentSvc, checkers)
+	}
+
 	targetHandler := v1.NewTargetHandler(targetSvc)
-
-	resultSvc := service.NewResultService(db.ResultStore())
 	resultHandler := v1.NewResultHandler(resultSvc)
-
-	incidentSvc := service.NewIncidentService(db.IncidentStore(), db.ResultStore())
 	incidentHandler := v1.NewIncidentHandler(incidentSvc)
-
-	checkSvc := service.NewCheckService(db.CheckStore(), db, resultSvc, incidentSvc, checkers)
 	checkHandler := v1.NewCheckHandler(checkSvc)
 
 	router := gin.New()
