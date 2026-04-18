@@ -44,6 +44,7 @@ export default function Targets() {
     mutationFn: createTarget,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["targets"] });
+      qc.invalidateQueries({ queryKey: ["checks"] });
       setForm(EMPTY_FORM);
       setShowForm(false);
     },

@@ -38,6 +38,19 @@ func (svc *TargetService) Create(ctx context.Context, t domain.Target) (domain.T
 	if err := svc.store.Save(ctx, t); err != nil {
 		return domain.Target{}, fmt.Errorf("create target: %w", err)
 	}
+
+	check := domain.CheckConfig{
+		ID:       fmt.Sprintf("%d", time.Now().UnixNano()),
+		Type:     domain.CheckType(t.Type),
+		TargetID: t.ID,
+		Interval: time.Minute,
+		Timeout:  10 * time.Second,
+		Params:   map[string]string{},
+	}
+	if err := svc.checks.Save(ctx, check); err != nil {
+		return domain.Target{}, fmt.Errorf("create default check for target %s: %w", t.ID, err)
+	}
+
 	return t, nil
 }
 
