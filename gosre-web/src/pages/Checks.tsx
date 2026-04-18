@@ -28,6 +28,7 @@ export default function Checks() {
 
   const targets = useQuery({ queryKey: ["targets"], queryFn: listTargets });
   const checks = useQuery({ queryKey: ["checks"], queryFn: listChecks });
+  const { refetch } = checks;
 
   const targetMap = Object.fromEntries(
     (targets.data ?? []).map((t) => [t.id, t.name]),
@@ -48,7 +49,16 @@ export default function Checks() {
 
   return (
     <div className="p-6">
-      <h1 className="text-lg font-semibold text-white mb-5">Checks</h1>
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-lg font-semibold text-white">Checks</h1>
+        <button
+          onClick={() => refetch()}
+          disabled={checks.isFetching}
+          className="text-xs px-3 py-1.5 rounded border border-surface-border text-gray-400 hover:text-white hover:border-brand transition-colors disabled:opacity-40"
+        >
+          {checks.isFetching ? "refreshing…" : "Refresh"}
+        </button>
+      </div>
 
       <ErrorMessage error={(error ?? run.error) as Error | null} />
 
@@ -75,7 +85,11 @@ export default function Checks() {
                   <tr key={c.id} className="hover:bg-surface-border/30 transition-colors">
                     <td className="px-4 py-3 text-brand font-mono text-xs">{c.type}</td>
                     <td className="px-4 py-3 text-gray-300 text-xs">
-                      {targetMap[c.target_id] ?? c.target_id}
+                      {targetMap[c.target_id] ?? (
+                        <code className="text-gray-500 font-mono">
+                          {c.target_id?.slice(0, 4)}…{c.target_id?.slice(-3)}
+                        </code>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-400 font-mono text-xs">{fmtInterval(c.interval)}</td>
                     <td className="px-4 py-3 text-gray-400 font-mono text-xs">{fmtDuration(c.timeout)}</td>

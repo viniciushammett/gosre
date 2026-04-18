@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listResults } from "../api/results";
 import { listTargets } from "../api/targets";
+import { listChecks } from "../api/checks";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
 import EmptyState from "../components/EmptyState";
@@ -24,13 +25,31 @@ export default function Results() {
   const [targetId, setTargetId] = useState<string>("");
 
   const targets = useQuery({ queryKey: ["targets"], queryFn: listTargets });
+  const checks = useQuery({ queryKey: ["checks"], queryFn: listChecks });
   const results = useQuery({
     queryKey: ["results", targetId],
     queryFn: () => listResults(targetId || undefined),
   });
+  const { refetch } = results;
 
-  const isLoading = targets.isLoading || results.isLoading;
-  const error = targets.error ?? results.error;
+  const targetMap = Object.fromEntries(
+    (targets.data ?? []).map((t) => [t.id, t.name]),
+  );
+  const checkMap = Object.fromEntries(
+    (checks.data ?? []).map((c) => [c.id, c.type]),
+  );
+
+  function resolveId(map: Record<string, string>, id?: string) {
+    if (!id) return "—";
+    return map[id] ?? (
+      <code className="text-gray-500 font-mono">
+        {id.slice(0, 4)}…{id.slice(-3)}
+      </code>
+    );
+  }
+
+  const isLoading = targets.isLoading || checks.isLoading || results.isLoading;
+  const error = targets.error ?? checks.error ?? results.error;
 
   if (isLoading) return <LoadingSpinner />;
 
@@ -39,6 +58,14 @@ export default function Results() {
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-lg font-semibold text-white">Results</h1>
 
+        <div className="flex items-center gap-2">
+        <button
+          onClick={() => refetch()}
+          disabled={results.isFetching}
+          className="text-xs px-3 py-1.5 rounded border border-surface-border text-gray-400 hover:text-white hover:border-brand transition-colors disabled:opacity-40"
+        >
+          {results.isFetching ? "refreshing…" : "Refresh"}
+        </button>
         <select
           value={targetId}
           onChange={(e) => setTargetId(e.target.value)}
@@ -51,6 +78,7 @@ export default function Results() {
             </option>
           ))}
         </select>
+        </div>
       </div>
 
       <ErrorMessage error={error as Error | null} />
@@ -76,8 +104,8 @@ export default function Results() {
                   <td className="px-4 py-3">
                     <StatusBadge status={(r.status ?? "unknown") as CheckStatus} />
                   </td>
-                  <td className="px-4 py-3 text-gray-300 font-mono text-xs">{r.target_id ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-300 font-mono text-xs">{r.check_id ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-300 text-xs">{resolveId(targetMap, r.target_id)}</td>
+                  <td className="px-4 py-3 text-gray-300 text-xs">{resolveId(checkMap, r.check_id)}</td>
                   <td className="px-4 py-3 text-gray-400 font-mono text-xs">{fmtDuration(r.duration_ms)}</td>
                   <td className="px-4 py-3 text-gray-400 text-xs">{fmtTime(r.timestamp)}</td>
                   <td className="px-4 py-3 text-status-fail font-mono text-xs truncate max-w-xs">
