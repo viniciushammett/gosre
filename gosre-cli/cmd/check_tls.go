@@ -73,7 +73,20 @@ func runCheckTLS(cmd *cobra.Command, _ []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	result := check.NewTLSChecker().Execute(ctx, target, cfg)
+	client, err := resolveAPIClient(cmd)
+	if err != nil {
+		return err
+	}
+
+	var result domain.Result
+	if client != nil {
+		result, err = client.RunCheck(ctx, target, cfg)
+		if err != nil {
+			return fmt.Errorf("api check: %w", err)
+		}
+	} else {
+		result = check.NewTLSChecker().Execute(ctx, target, cfg)
+	}
 
 	if !quiet {
 		if err := output.Write(os.Stdout, output.Format(outputFmt), []domain.Result{result}); err != nil {

@@ -28,4 +28,6 @@ func init() {
 	rootCmd.PersistentFlags().String("output", "table", "Output format: table|json")
 	rootCmd.PersistentFlags().Bool("quiet", false, "Suppress output; use exit code only")
 	rootCmd.PersistentFlags().String("timeout", "10s", "Check timeout (e.g. 10s, 30s)")
+	rootCmd.PersistentFlags().String("api-url", "", "gosre-api base URL (e.g. http://localhost:8080)")
+	rootCmd.PersistentFlags().String("api-key", "", "API key for gosre-api (X-API-Key header)")
 }
