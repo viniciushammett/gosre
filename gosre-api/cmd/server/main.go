@@ -14,7 +14,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/gosre/gosre-sdk/domain"
+
 	v1 "github.com/gosre/gosre-api/internal/api/v1"
+	"github.com/gosre/gosre-api/internal/check"
 	"github.com/gosre/gosre-api/internal/service"
 	"github.com/gosre/gosre-api/internal/store/sqlite"
 )
@@ -36,8 +39,21 @@ func main() {
 		logger.Fatal("open store", zap.Error(err))
 	}
 
+	checkers := map[domain.CheckType]domain.Checker{
+		domain.CheckTypeHTTP: check.NewHTTPChecker(),
+		domain.CheckTypeTCP:  check.NewTCPChecker(),
+		domain.CheckTypeDNS:  check.NewDNSChecker(),
+		domain.CheckTypeTLS:  check.NewTLSChecker(),
+	}
+
 	targetSvc := service.NewTargetService(db)
 	targetHandler := v1.NewTargetHandler(targetSvc)
+
+	resultSvc := service.NewResultService(db.ResultStore())
+	resultHandler := v1.NewResultHandler(resultSvc)
+
+	checkSvc := service.NewCheckService(db.CheckStore(), db, resultSvc, checkers)
+	checkHandler := v1.NewCheckHandler(checkSvc)
 
 	router := gin.New()
 	router.Use(gin.Logger())
@@ -50,6 +66,13 @@ func main() {
 	api.POST("/targets", targetHandler.CreateTarget)
 	api.GET("/targets/:id", targetHandler.GetTarget)
 	api.DELETE("/targets/:id", targetHandler.DeleteTarget)
+
+	api.GET("/checks", checkHandler.ListChecks)
+	api.POST("/checks", checkHandler.CreateCheck)
+	api.POST("/checks/:id/run", checkHandler.RunCheck)
+
+	api.GET("/results", resultHandler.ListResults)
+	api.GET("/results/:id", resultHandler.GetResult)
 
 	srv := &http.Server{
 		Addr:    ":" + port,

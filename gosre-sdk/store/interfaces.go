@@ -21,7 +21,16 @@ type TargetStore interface {
 type ResultStore interface {
 	Save(ctx context.Context, r domain.Result) error
 	Get(ctx context.Context, id string) (domain.Result, error)
+	List(ctx context.Context) ([]domain.Result, error)
 	ListByTarget(ctx context.Context, targetID string) ([]domain.Result, error)
+}
+
+// CheckStore defines persistence operations for CheckConfig entities.
+type CheckStore interface {
+	Save(ctx context.Context, c domain.CheckConfig) error
+	Get(ctx context.Context, id string) (domain.CheckConfig, error)
+	List(ctx context.Context) ([]domain.CheckConfig, error)
+	Delete(ctx context.Context, id string) error
 }
 
 // IncidentStore defines persistence operations for Incident entities.
