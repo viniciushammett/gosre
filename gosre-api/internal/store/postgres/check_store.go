@@ -76,6 +76,15 @@ func (s *CheckStore) List(ctx context.Context) ([]domain.CheckConfig, error) {
 	return checks, nil
 }
 
+// DeleteByTargetID removes all CheckConfigs associated with the given targetID.
+func (s *CheckStore) DeleteByTargetID(ctx context.Context, targetID string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM checks WHERE target_id = $1`, targetID)
+	if err != nil {
+		return fmt.Errorf("postgres: delete checks for target %q: %w", targetID, err)
+	}
+	return nil
+}
+
 // Delete removes a CheckConfig by ID. Returns sql.ErrNoRows if not present.
 func (s *CheckStore) Delete(ctx context.Context, id string) error {
 	res, err := s.db.ExecContext(ctx, `DELETE FROM checks WHERE id = $1`, id)

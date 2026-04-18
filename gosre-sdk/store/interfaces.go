@@ -23,6 +23,7 @@ type ResultStore interface {
 	Get(ctx context.Context, id string) (domain.Result, error)
 	List(ctx context.Context) ([]domain.Result, error)
 	ListByTarget(ctx context.Context, targetID string) ([]domain.Result, error)
+	DeleteByTargetID(ctx context.Context, targetID string) error
 }
 
 // CheckStore defines persistence operations for CheckConfig entities.
@@ -31,6 +32,7 @@ type CheckStore interface {
 	Get(ctx context.Context, id string) (domain.CheckConfig, error)
 	List(ctx context.Context) ([]domain.CheckConfig, error)
 	Delete(ctx context.Context, id string) error
+	DeleteByTargetID(ctx context.Context, targetID string) error
 }
 
 // IncidentStore defines persistence operations for Incident entities.

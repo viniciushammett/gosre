@@ -56,7 +56,7 @@ func main() {
 		if err != nil {
 			logger.Fatal("open postgres store", zap.Error(err))
 		}
-		targetSvc = service.NewTargetService(pg)
+		targetSvc = service.NewTargetService(pg, pg.CheckStore(), pg.ResultStore())
 		resultSvc = service.NewResultService(pg.ResultStore())
 		incidentSvc = service.NewIncidentService(pg.IncidentStore(), pg.ResultStore())
 		checkSvc = service.NewCheckService(pg.CheckStore(), pg, resultSvc, incidentSvc, checkers)
@@ -66,7 +66,7 @@ func main() {
 		if err != nil {
 			logger.Fatal("open sqlite store", zap.Error(err))
 		}
-		targetSvc = service.NewTargetService(lite)
+		targetSvc = service.NewTargetService(lite, lite.CheckStore(), lite.ResultStore())
 		resultSvc = service.NewResultService(lite.ResultStore())
 		incidentSvc = service.NewIncidentService(lite.IncidentStore(), lite.ResultStore())
 		checkSvc = service.NewCheckService(lite.CheckStore(), lite, resultSvc, incidentSvc, checkers)

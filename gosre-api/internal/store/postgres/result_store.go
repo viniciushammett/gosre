@@ -78,6 +78,15 @@ func (s *ResultStore) List(ctx context.Context) ([]domain.Result, error) {
 	return results, nil
 }
 
+// DeleteByTargetID removes all Results associated with the given targetID.
+func (s *ResultStore) DeleteByTargetID(ctx context.Context, targetID string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM results WHERE target_id = $1`, targetID)
+	if err != nil {
+		return fmt.Errorf("postgres: delete results for target %q: %w", targetID, err)
+	}
+	return nil
+}
+
 // ListByTarget returns all Results for the given targetID ordered by timestamp DESC.
 func (s *ResultStore) ListByTarget(ctx context.Context, targetID string) ([]domain.Result, error) {
 	rows, err := s.db.QueryContext(ctx,
