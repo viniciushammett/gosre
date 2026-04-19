@@ -48,7 +48,7 @@ func (s *AgentStore) List(ctx context.Context) ([]AgentRecord, error) {
 	if err != nil {
 		return nil, fmt.Errorf("sqlite: list agents: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var out []AgentRecord
 	for rows.Next() {
 		var r AgentRecord
