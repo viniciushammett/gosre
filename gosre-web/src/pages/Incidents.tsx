@@ -6,7 +6,8 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
 import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
-import type { IncidentState } from "../api/client";
+import IncidentDrawer from "../components/IncidentDrawer";
+import type { Incident, IncidentState } from "../api/client";
 
 const FILTERS: { label: string; value: IncidentState | undefined }[] = [
   { label: "All", value: undefined },
@@ -23,6 +24,7 @@ function fmt(iso?: string) {
 export default function Incidents() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<IncidentState | undefined>(undefined);
+  const [selected, setSelected] = useState<Incident | null>(null);
 
   const targets = useQuery({ queryKey: ["targets"], queryFn: listTargets });
   const { data, isLoading, error } = useQuery({
@@ -90,7 +92,7 @@ export default function Incidents() {
             </thead>
             <tbody className="divide-y divide-surface-border">
               {data.map((inc) => (
-                <tr key={inc.id} className="hover:bg-surface-border/30 transition-colors">
+                <tr key={inc.id} onClick={() => setSelected(inc)} className="hover:bg-surface-border/30 transition-colors cursor-pointer">
                   <td className="px-4 py-3 text-sm">{resolveTarget(inc.target_id)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={inc.state ?? "open"} />
@@ -125,6 +127,11 @@ export default function Incidents() {
           </table>
         </div>
       )}
+      <IncidentDrawer
+        incident={selected}
+        targetName={selected ? (targetMap[selected.target_id ?? ""] ?? selected.target_id ?? "—") : ""}
+        onClose={() => setSelected(null)}
+      />
     </div>
   );
 }
