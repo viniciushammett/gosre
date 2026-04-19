@@ -48,6 +48,7 @@ func main() {
 		resultSvc   *service.ResultService
 		incidentSvc *service.IncidentService
 		checkSvc    *service.CheckService
+		agentHandler *v1.AgentHandler
 	)
 
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
@@ -70,6 +71,7 @@ func main() {
 		resultSvc = service.NewResultService(lite.ResultStore())
 		incidentSvc = service.NewIncidentService(lite.IncidentStore(), lite.ResultStore())
 		checkSvc = service.NewCheckService(lite.CheckStore(), lite, resultSvc, incidentSvc, checkers)
+		agentHandler = v1.NewAgentHandler(lite.AgentStore(), lite.CheckStore())
 	}
 
 	targetHandler := v1.NewTargetHandler(targetSvc)
@@ -98,9 +100,16 @@ func main() {
 
 	api.GET("/results", resultHandler.ListResults)
 	api.GET("/results/:id", resultHandler.GetResult)
+	api.POST("/results", resultHandler.PostResult)
 
 	api.GET("/incidents", incidentHandler.ListIncidents)
 	api.PATCH("/incidents/:id", incidentHandler.PatchIncident)
+
+	if agentHandler != nil {
+		api.POST("/agents/register", agentHandler.Register)
+		api.POST("/agents/:id/heartbeat", agentHandler.Heartbeat)
+		api.GET("/agents/:id/assignments", agentHandler.Assignments)
+	}
 
 	srv := &http.Server{
 		Addr:    ":" + port,

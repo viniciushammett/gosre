@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS agents (
+    id        TEXT PRIMARY KEY,
+    hostname  TEXT NOT NULL,
+    version   TEXT NOT NULL,
+    last_seen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
