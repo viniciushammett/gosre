@@ -117,6 +117,15 @@ func (s *IncidentStore) Update(ctx context.Context, i domain.Incident) error {
 	return nil
 }
 
+// DeleteByTargetID removes all Incidents associated with the given targetID.
+func (s *IncidentStore) DeleteByTargetID(ctx context.Context, targetID string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM incidents WHERE target_id = $1`, targetID)
+	if err != nil {
+		return fmt.Errorf("postgres: delete incidents for target %q: %w", targetID, err)
+	}
+	return nil
+}
+
 func scanIncident(s scanner) (domain.Incident, error) {
 	var (
 		i       domain.Incident

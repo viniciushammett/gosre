@@ -19,7 +19,7 @@ func CORS() gin.HandlerFunc {
 	origins := os.Getenv("GOSRE_CORS_ORIGINS")
 
 	cfg := cors.Config{
-		AllowMethods:     []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "X-API-Key"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: false,

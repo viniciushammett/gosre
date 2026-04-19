@@ -110,7 +110,11 @@ export default function Targets() {
   function handleEditSubmit(e: React.FormEvent, id: string) {
     e.preventDefault();
     let address = editForm.address.trim();
-    if (editForm.type === "http" && !/^https?:\/\//i.test(address)) {
+    if (
+      editForm.type === "http" &&
+      !address.startsWith("http://") &&
+      !address.startsWith("https://")
+    ) {
       address = "https://" + address;
     }
     update.mutate({ id, body: { ...editForm, address } });

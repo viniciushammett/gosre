@@ -41,4 +41,5 @@ type IncidentStore interface {
 	Get(ctx context.Context, id string) (domain.Incident, error)
 	ListByState(ctx context.Context, state domain.IncidentState) ([]domain.Incident, error)
 	Update(ctx context.Context, i domain.Incident) error
+	DeleteByTargetID(ctx context.Context, targetID string) error
 }

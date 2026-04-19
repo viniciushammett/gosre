@@ -14,14 +14,15 @@ import (
 
 // TargetService handles business logic for Target entities.
 type TargetService struct {
-	store   store.TargetStore
-	checks  store.CheckStore
-	results store.ResultStore
+	store     store.TargetStore
+	checks    store.CheckStore
+	results   store.ResultStore
+	incidents store.IncidentStore
 }
 
 // NewTargetService constructs a TargetService backed by the given stores.
-func NewTargetService(s store.TargetStore, checks store.CheckStore, results store.ResultStore) *TargetService {
-	return &TargetService{store: s, checks: checks, results: results}
+func NewTargetService(s store.TargetStore, checks store.CheckStore, results store.ResultStore, incidents store.IncidentStore) *TargetService {
+	return &TargetService{store: s, checks: checks, results: results, incidents: incidents}
 }
 
 // Create validates, assigns an ID if absent, and persists a new Target.
@@ -86,7 +87,7 @@ func (svc *TargetService) List(ctx context.Context) ([]domain.Target, error) {
 	return svc.store.List(ctx)
 }
 
-// Delete removes a Target and all associated checks and results.
+// Delete removes a Target and all associated checks, results, and incidents.
 func (svc *TargetService) Delete(ctx context.Context, id string) error {
 	if err := svc.store.Delete(ctx, id); err != nil {
 		return err
@@ -96,6 +97,9 @@ func (svc *TargetService) Delete(ctx context.Context, id string) error {
 	}
 	if err := svc.results.DeleteByTargetID(ctx, id); err != nil {
 		return fmt.Errorf("delete results for target %s: %w", id, err)
+	}
+	if err := svc.incidents.DeleteByTargetID(ctx, id); err != nil {
+		return fmt.Errorf("delete incidents for target %s: %w", id, err)
 	}
 	return nil
 }
