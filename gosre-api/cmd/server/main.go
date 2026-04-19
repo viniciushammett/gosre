@@ -44,10 +44,10 @@ func main() {
 	}
 
 	var (
-		targetSvc   *service.TargetService
-		resultSvc   *service.ResultService
-		incidentSvc *service.IncidentService
-		checkSvc    *service.CheckService
+		targetSvc    *service.TargetService
+		resultSvc    *service.ResultService
+		incidentSvc  *service.IncidentService
+		checkSvc     *service.CheckService
 		agentHandler *v1.AgentHandler
 	)
 

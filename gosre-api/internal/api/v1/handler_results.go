@@ -26,14 +26,14 @@ func NewResultHandler(svc *service.ResultService) *ResultHandler {
 }
 
 type postResultRequest struct {
-	ID         string            `json:"id"`
-	CheckID    string            `json:"check_id"`
-	TargetID   string            `json:"target_id"`
-	AgentID    string            `json:"agent_id"`
+	ID         string             `json:"id"`
+	CheckID    string             `json:"check_id"`
+	TargetID   string             `json:"target_id"`
+	AgentID    string             `json:"agent_id"`
 	Status     domain.CheckStatus `json:"status"`
-	DurationMs int64             `json:"duration_ms"`
-	Error      string            `json:"error"`
-	Timestamp  time.Time         `json:"timestamp"`
+	DurationMs int64              `json:"duration_ms"`
+	Error      string             `json:"error"`
+	Timestamp  time.Time          `json:"timestamp"`
 }
 
 // PostResult handles POST /api/v1/results — used by gosre-agent to report check results.

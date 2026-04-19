@@ -75,9 +75,9 @@ func (h *AgentHandler) Heartbeat(c *gin.Context) {
 }
 
 type assignmentResponse struct {
-	CheckID  string            `json:"check_id"`
-	TargetID string            `json:"target_id"`
-	Type     domain.CheckType  `json:"type"`
+	CheckID  string           `json:"check_id"`
+	TargetID string           `json:"target_id"`
+	Type     domain.CheckType `json:"type"`
 }
 
 // Assignments handles GET /api/v1/agents/:id/assignments.
