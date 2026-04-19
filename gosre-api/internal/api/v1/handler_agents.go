@@ -37,6 +37,25 @@ type agentResponse struct {
 	LastSeen time.Time `json:"last_seen"`
 }
 
+// List handles GET /api/v1/agents.
+func (h *AgentHandler) List(c *gin.Context) {
+	recs, err := h.agents.List(c.Request.Context())
+	if err != nil {
+		Fail(c, http.StatusInternalServerError, "internal_error", err.Error())
+		return
+	}
+	out := make([]agentResponse, 0, len(recs))
+	for _, r := range recs {
+		out = append(out, agentResponse{
+			ID:       r.ID,
+			Hostname: r.Hostname,
+			Version:  r.Version,
+			LastSeen: r.LastSeen,
+		})
+	}
+	OK(c, http.StatusOK, out)
+}
+
 // Register handles POST /api/v1/agents/register.
 func (h *AgentHandler) Register(c *gin.Context) {
 	var body registerAgentRequest

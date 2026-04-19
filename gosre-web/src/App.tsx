@@ -6,6 +6,7 @@ import Targets from "./pages/Targets";
 import Incidents from "./pages/Incidents";
 import Results from "./pages/Results";
 import Checks from "./pages/Checks";
+import Agents from "./pages/Agents";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="incidents" element={<Incidents />} />
             <Route path="results" element={<Results />} />
             <Route path="checks" element={<Checks />} />
+            <Route path="agents" element={<Agents />} />
           </Route>
         </Routes>
       </BrowserRouter>

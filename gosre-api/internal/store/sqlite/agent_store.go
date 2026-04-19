@@ -41,6 +41,25 @@ func (s *AgentStore) Register(ctx context.Context, a AgentRecord) error {
 	return nil
 }
 
+// List returns all registered agents ordered by last_seen descending.
+func (s *AgentStore) List(ctx context.Context) ([]AgentRecord, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, hostname, version, last_seen FROM agents ORDER BY last_seen DESC`)
+	if err != nil {
+		return nil, fmt.Errorf("sqlite: list agents: %w", err)
+	}
+	defer rows.Close()
+	var out []AgentRecord
+	for rows.Next() {
+		var r AgentRecord
+		if err := rows.Scan(&r.ID, &r.Hostname, &r.Version, &r.LastSeen); err != nil {
+			return nil, fmt.Errorf("sqlite: scan agent: %w", err)
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
 // Heartbeat updates the last_seen timestamp for an agent.
 func (s *AgentStore) Heartbeat(ctx context.Context, id string) error {
 	res, err := s.db.ExecContext(ctx,

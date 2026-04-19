@@ -106,6 +106,7 @@ func main() {
 	api.PATCH("/incidents/:id", incidentHandler.PatchIncident)
 
 	if agentHandler != nil {
+		api.GET("/agents", agentHandler.List)
 		api.POST("/agents/register", agentHandler.Register)
 		api.POST("/agents/:id/heartbeat", agentHandler.Heartbeat)
 		api.GET("/agents/:id/assignments", agentHandler.Assignments)
