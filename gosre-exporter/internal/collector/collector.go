@@ -14,6 +14,8 @@ import (
 	"github.com/gosre/gosre-sdk/domain"
 )
 
+const agentOnlineThreshold = 60 * time.Second
+
 // ensure Collector implements prometheus.Collector at compile time.
 var _ prometheus.Collector = (*Collector)(nil)
 
@@ -65,8 +67,8 @@ func New(client *apiclient.Client, apiTimeout time.Duration, logger *zap.Logger)
 		),
 		agentUp: prometheus.NewDesc(
 			"gosre_agent_up",
-			"1 if the agent is reachable (stub: Phase 4).",
-			nil,
+			"1 if the agent sent a heartbeat in the last 60 seconds, 0 otherwise.",
+			[]string{"agent_id", "hostname"},
 			nil,
 		),
 	}
@@ -110,6 +112,12 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
+	agents, err := c.client.ListAgents(ctx)
+	if err != nil {
+		c.logger.Error("collect: list agents", zap.Error(err))
+		return
+	}
+
 	// Build check_id → check_type index.
 	checkType := make(map[string]string, len(checks))
 	for _, ck := range checks {
@@ -126,9 +134,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 	c.collectCheckResults(ch, results, checkType)
 	c.collectCheckDuration(ch, results, checkType)
 	c.collectIncidents(ch, incidents)
-
-	// gosre_agent_up: stub — Phase 4
-	ch <- prometheus.MustNewConstMetric(c.agentUp, prometheus.GaugeValue, 0)
+	c.collectAgentUp(ch, agents)
 }
 
 func (c *Collector) collectTargetUp(ch chan<- prometheus.Metric, targets []domain.Target, results []domain.Result) {
@@ -210,6 +216,19 @@ func (c *Collector) collectCheckDuration(ch chan<- prometheus.Metric, results []
 			c.checkDuration,
 			s.count, s.sum, s.buckets,
 			k.targetID, k.checkType,
+		)
+	}
+}
+
+func (c *Collector) collectAgentUp(ch chan<- prometheus.Metric, agents []apiclient.AgentRecord) {
+	for _, a := range agents {
+		up := 0.0
+		if time.Since(a.LastSeen) < agentOnlineThreshold {
+			up = 1.0
+		}
+		ch <- prometheus.MustNewConstMetric(
+			c.agentUp, prometheus.GaugeValue, up,
+			a.ID, a.Hostname,
 		)
 	}
 }

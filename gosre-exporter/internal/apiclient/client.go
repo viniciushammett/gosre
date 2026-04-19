@@ -93,6 +93,27 @@ func (c *Client) ListIncidents(ctx context.Context) ([]domain.Incident, error) {
 	return incidents, nil
 }
 
+// AgentRecord holds the registration data returned by GET /api/v1/agents.
+type AgentRecord struct {
+	ID       string    `json:"id"`
+	Hostname string    `json:"hostname"`
+	Version  string    `json:"version"`
+	LastSeen time.Time `json:"last_seen"`
+}
+
+// ListAgents returns all registered agents from the API.
+func (c *Client) ListAgents(ctx context.Context) ([]AgentRecord, error) {
+	raw, err := c.get(ctx, "/api/v1/agents")
+	if err != nil {
+		return nil, err
+	}
+	var agents []AgentRecord
+	if err := json.Unmarshal(raw, &agents); err != nil {
+		return nil, fmt.Errorf("apiclient: decode agents: %w", err)
+	}
+	return agents, nil
+}
+
 func (c *Client) get(ctx context.Context, path string) (json.RawMessage, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
