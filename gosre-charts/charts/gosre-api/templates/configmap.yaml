@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "gosre-api.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gosre-api.labels" . | nindent 4 }}
+data:
+  GOSRE_DB_PATH: {{ .Values.env.dbPath | quote }}
+  GOSRE_LOG_LEVEL: {{ .Values.env.logLevel | quote }}

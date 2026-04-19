@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gosre-exporter.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gosre-exporter.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "gosre-exporter.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gosre-exporter.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: gosre-exporter
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          env:
+            - name: GOSRE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-exporter.fullname" . }}
+                  key: GOSRE_API_URL
+            - name: GOSRE_POLL_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-exporter.fullname" . }}
+                  key: GOSRE_POLL_INTERVAL
+            - name: GOSRE_METRICS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-exporter.fullname" . }}
+                  key: GOSRE_METRICS_PORT
+            - name: GOSRE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gosre-exporter.fullname" . }}
+                  key: api-key
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 9090
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

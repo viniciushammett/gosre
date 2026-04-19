@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gosre-api.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gosre-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "gosre-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gosre-api.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: gosre-api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: GOSRE_DB_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-api.fullname" . }}
+                  key: GOSRE_DB_PATH
+            - name: GOSRE_LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-api.fullname" . }}
+                  key: GOSRE_LOG_LEVEL
+            - name: GOSRE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gosre-api.fullname" . }}
+                  key: api-key
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "gosre-api.fullname" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

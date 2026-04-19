@@ -1,0 +1,23 @@
+gosre-api:
+  env:
+    dbPath: "/data/gosre.db"
+    logLevel: "info"
+  apiKey: ""
+
+gosre-agent:
+  env:
+    apiURL: "http://gosre-api:8080"
+    pollInterval: "30s"
+    logLevel: "info"
+  apiKey: ""
+
+gosre-exporter:
+  env:
+    apiURL: "http://gosre-api:8080"
+    pollInterval: "30s"
+    metricsPort: "9090"
+  apiKey: ""
+
+gosre-web:
+  env:
+    apiURL: "http://gosre-api:8080"

@@ -1,0 +1,15 @@
+dependencies:
+- name: gosre-api
+  repository: file://../gosre-api
+  version: 0.1.0
+- name: gosre-agent
+  repository: file://../gosre-agent
+  version: 0.1.0
+- name: gosre-exporter
+  repository: file://../gosre-exporter
+  version: 0.1.0
+- name: gosre-web
+  repository: file://../gosre-web
+  version: 0.1.0
+digest: sha256:a39b071f5ddea1800e05c4bc851dbdac9c38dcbf60a8acb5f8c406b2d91182d4
+generated: "2026-04-19T17:03:14.178065942-03:00"

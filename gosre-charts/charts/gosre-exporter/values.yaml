@@ -1,0 +1,28 @@
+replicaCount: 1
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+image:
+  repository: ghcr.io/viniciushammett/gosre/gosre-exporter
+  tag: "latest"
+  pullPolicy: Always
+
+env:
+  apiURL: "http://gosre-api:8080"
+  pollInterval: "30s"
+  metricsPort: "9090"
+
+apiKey: ""
+
+service:
+  type: ClusterIP
+  port: 9090
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

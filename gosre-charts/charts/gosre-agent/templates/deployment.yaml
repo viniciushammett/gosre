@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gosre-agent.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gosre-agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "gosre-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gosre-agent.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: gosre-agent
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: GOSRE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-agent.fullname" . }}
+                  key: GOSRE_API_URL
+            - name: GOSRE_AGENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-agent.fullname" . }}
+                  key: GOSRE_AGENT_ID
+            - name: GOSRE_POLL_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-agent.fullname" . }}
+                  key: GOSRE_POLL_INTERVAL
+            - name: GOSRE_LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-agent.fullname" . }}
+                  key: GOSRE_LOG_LEVEL
+            - name: GOSRE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gosre-agent.fullname" . }}
+                  key: api-key
+          livenessProbe:
+            exec:
+              command: ["true"]
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

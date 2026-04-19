@@ -1,0 +1,5 @@
+apiVersion: v2
+name: gosre-web
+description: GoSRE Web — React frontend
+version: 0.1.0
+appVersion: "0.1.0"

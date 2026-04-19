@@ -1,0 +1,18 @@
+apiVersion: v2
+name: gosre
+description: GoSRE — full stack umbrella chart
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: gosre-api
+    version: "0.1.0"
+    repository: "file://../gosre-api"
+  - name: gosre-agent
+    version: "0.1.0"
+    repository: "file://../gosre-agent"
+  - name: gosre-exporter
+    version: "0.1.0"
+    repository: "file://../gosre-exporter"
+  - name: gosre-web
+    version: "0.1.0"
+    repository: "file://../gosre-web"
