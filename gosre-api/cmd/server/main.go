@@ -83,11 +83,11 @@ func main() {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(middleware.CORS())
-	router.Use(middleware.APIKey())
 
 	router.GET("/healthz", v1.HealthHandler)
 
 	api := router.Group("/api/v1")
+	api.Use(middleware.APIKey())
 	api.GET("/targets", targetHandler.ListTargets)
 	api.POST("/targets", targetHandler.CreateTarget)
 	api.GET("/targets/:id", targetHandler.GetTarget)
