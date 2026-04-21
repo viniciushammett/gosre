@@ -20,7 +20,7 @@ import (
 	"github.com/gosre/gosre-api/internal/check"
 	"github.com/gosre/gosre-api/internal/middleware"
 	"github.com/gosre/gosre-api/internal/service"
-	"github.com/gosre/gosre-api/internal/store/postgres"
+	"github.com/gosre/gosre-api/internal/store/azuresql"
 	"github.com/gosre/gosre-api/internal/store/sqlite"
 )
 
@@ -52,15 +52,17 @@ func main() {
 	)
 
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
-		logger.Info("using postgres store", zap.String("url", dbURL))
-		pg, err := postgres.New(dbURL)
+		logger.Info("using azuresql store", zap.String("url", dbURL))
+		az, err := azuresql.New(dbURL)
 		if err != nil {
-			logger.Fatal("open postgres store", zap.Error(err))
+			logger.Fatal("open azuresql store", zap.Error(err))
 		}
-		targetSvc = service.NewTargetService(pg, pg.CheckStore(), pg.ResultStore(), pg.IncidentStore())
-		resultSvc = service.NewResultService(pg.ResultStore())
-		incidentSvc = service.NewIncidentService(pg.IncidentStore(), pg.ResultStore())
-		checkSvc = service.NewCheckService(pg.CheckStore(), pg, resultSvc, incidentSvc, checkers)
+		defer func() { _ = az.Close() }()
+		targetSvc = service.NewTargetService(az.TargetStore(), az.CheckStore(), az.ResultStore(), az.IncidentStore())
+		resultSvc = service.NewResultService(az.ResultStore())
+		incidentSvc = service.NewIncidentService(az.IncidentStore(), az.ResultStore())
+		checkSvc = service.NewCheckService(az.CheckStore(), az.TargetStore(), resultSvc, incidentSvc, checkers)
+		agentHandler = v1.NewAgentHandler(az.AgentStore(), az.CheckStore())
 	} else {
 		logger.Info("using sqlite store", zap.String("path", "gosre.db"))
 		lite, err := sqlite.New("gosre.db")
@@ -105,12 +107,10 @@ func main() {
 	api.GET("/incidents", incidentHandler.ListIncidents)
 	api.PATCH("/incidents/:id", incidentHandler.PatchIncident)
 
-	if agentHandler != nil {
-		api.GET("/agents", agentHandler.List)
-		api.POST("/agents/register", agentHandler.Register)
-		api.POST("/agents/:id/heartbeat", agentHandler.Heartbeat)
-		api.GET("/agents/:id/assignments", agentHandler.Assignments)
-	}
+	api.GET("/agents", agentHandler.List)
+	api.POST("/agents/register", agentHandler.Register)
+	api.POST("/agents/:id/heartbeat", agentHandler.Heartbeat)
+	api.GET("/agents/:id/assignments", agentHandler.Assignments)
 
 	srv := &http.Server{
 		Addr:    ":" + port,

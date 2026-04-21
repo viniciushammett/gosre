@@ -1,7 +1,7 @@
 // Copyright 2026 Vinicius Teixeira
 // Licensed under the Apache License, Version 2.0
 
-package postgres
+package azuresql
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"github.com/gosre/gosre-sdk/domain"
 )
 
-// ResultStore implements store.ResultStore for PostgreSQL.
+// ResultStore implements store.ResultStore for Azure SQL.
 type ResultStore struct {
 	db *sql.DB
 }
@@ -24,24 +24,31 @@ func (s *Store) ResultStore() *ResultStore {
 	return &ResultStore{db: s.db}
 }
 
-// Save inserts or updates a Result in the database.
+// Save inserts or updates a Result using a MERGE statement.
 func (s *ResultStore) Save(ctx context.Context, r domain.Result) error {
 	meta, err := json.Marshal(r.Metadata)
 	if err != nil {
-		return fmt.Errorf("postgres: marshal metadata: %w", err)
+		return fmt.Errorf("azuresql: marshal metadata: %w", err)
 	}
 
-	_, err = s.db.ExecContext(ctx,
-		`INSERT INTO results (id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		 ON CONFLICT (id) DO UPDATE
-		 SET check_id=$2, target_id=$3, agent_id=$4, status=$5, duration=$6, error=$7, timestamp=$8, metadata=$9`,
+	_, err = s.db.ExecContext(ctx, `
+		MERGE results WITH (HOLDLOCK) AS T
+		USING (VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9))
+			AS S(id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata)
+		ON T.id = S.id
+		WHEN MATCHED THEN
+			UPDATE SET T.check_id=S.check_id, T.target_id=S.target_id, T.agent_id=S.agent_id,
+			           T.status=S.status, T.duration_ns=S.duration_ns, T.error=S.error,
+			           T.timestamp=S.timestamp, T.metadata=S.metadata
+		WHEN NOT MATCHED THEN
+			INSERT (id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata)
+			VALUES (S.id, S.check_id, S.target_id, S.agent_id, S.status, S.duration_ns, S.error, S.timestamp, S.metadata);`,
 		r.ID, r.CheckID, r.TargetID, r.AgentID,
 		string(r.Status), r.Duration.Nanoseconds(), r.Error,
 		r.Timestamp.UTC(), string(meta),
 	)
 	if err != nil {
-		return fmt.Errorf("postgres: save result %q: %w", r.ID, err)
+		return fmt.Errorf("azuresql: save result %q: %w", r.ID, err)
 	}
 	return nil
 }
@@ -49,18 +56,18 @@ func (s *ResultStore) Save(ctx context.Context, r domain.Result) error {
 // Get retrieves a Result by ID. Returns sql.ErrNoRows if not present.
 func (s *ResultStore) Get(ctx context.Context, id string) (domain.Result, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata
-		 FROM results WHERE id = $1`, id)
+		`SELECT id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata
+		 FROM results WHERE id = @p1`, id)
 	return scanResult(row)
 }
 
 // List returns all Results ordered by timestamp DESC.
 func (s *ResultStore) List(ctx context.Context) ([]domain.Result, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata
+		`SELECT id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata
 		 FROM results ORDER BY timestamp DESC`)
 	if err != nil {
-		return nil, fmt.Errorf("postgres: list results: %w", err)
+		return nil, fmt.Errorf("azuresql: list results: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -73,42 +80,42 @@ func (s *ResultStore) List(ctx context.Context) ([]domain.Result, error) {
 		results = append(results, r)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("postgres: iterate results: %w", err)
+		return nil, fmt.Errorf("azuresql: iterate results: %w", err)
+	}
+	return results, nil
+}
+
+// ListByTarget returns all Results for the given targetID ordered by timestamp DESC.
+func (s *ResultStore) ListByTarget(ctx context.Context, targetID string) ([]domain.Result, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata
+		 FROM results WHERE target_id = @p1 ORDER BY timestamp DESC`, targetID)
+	if err != nil {
+		return nil, fmt.Errorf("azuresql: list results for target %q: %w", targetID, err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	results := make([]domain.Result, 0)
+	for rows.Next() {
+		r, err := scanResult(rows)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("azuresql: iterate results: %w", err)
 	}
 	return results, nil
 }
 
 // DeleteByTargetID removes all Results associated with the given targetID.
 func (s *ResultStore) DeleteByTargetID(ctx context.Context, targetID string) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM results WHERE target_id = $1`, targetID)
+	_, err := s.db.ExecContext(ctx, `DELETE FROM results WHERE target_id = @p1`, targetID)
 	if err != nil {
-		return fmt.Errorf("postgres: delete results for target %q: %w", targetID, err)
+		return fmt.Errorf("azuresql: delete results for target %q: %w", targetID, err)
 	}
 	return nil
-}
-
-// ListByTarget returns all Results for the given targetID ordered by timestamp DESC.
-func (s *ResultStore) ListByTarget(ctx context.Context, targetID string) ([]domain.Result, error) {
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata
-		 FROM results WHERE target_id = $1 ORDER BY timestamp DESC`, targetID)
-	if err != nil {
-		return nil, fmt.Errorf("postgres: list results for target %q: %w", targetID, err)
-	}
-	defer func() { _ = rows.Close() }()
-
-	results := make([]domain.Result, 0)
-	for rows.Next() {
-		r, err := scanResult(rows)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, r)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("postgres: iterate results: %w", err)
-	}
-	return results, nil
 }
 
 func scanResult(s scanner) (domain.Result, error) {
@@ -118,23 +125,19 @@ func scanResult(s scanner) (domain.Result, error) {
 		durationNs int64
 		metaJSON   string
 	)
-
 	err := s.Scan(&r.ID, &r.CheckID, &r.TargetID, &r.AgentID,
 		&status, &durationNs, &r.Error, &r.Timestamp, &metaJSON)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Result{}, sql.ErrNoRows
 	}
 	if err != nil {
-		return domain.Result{}, fmt.Errorf("postgres: scan result: %w", err)
+		return domain.Result{}, fmt.Errorf("azuresql: scan result: %w", err)
 	}
-
 	r.Status = domain.CheckStatus(status)
 	r.Duration = time.Duration(durationNs)
 	r.Timestamp = r.Timestamp.UTC()
-
 	if err := json.Unmarshal([]byte(metaJSON), &r.Metadata); err != nil {
-		return domain.Result{}, fmt.Errorf("postgres: unmarshal metadata: %w", err)
+		return domain.Result{}, fmt.Errorf("azuresql: unmarshal metadata: %w", err)
 	}
-
 	return r, nil
 }

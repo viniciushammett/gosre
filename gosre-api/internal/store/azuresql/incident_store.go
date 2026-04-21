@@ -1,7 +1,7 @@
 // Copyright 2026 Vinicius Teixeira
 // Licensed under the Apache License, Version 2.0
 
-package postgres
+package azuresql
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/gosre/gosre-sdk/domain"
 )
 
-// IncidentStore implements store.IncidentStore for PostgreSQL.
+// IncidentStore implements store.IncidentStore for Azure SQL.
 type IncidentStore struct {
 	db *sql.DB
 }
@@ -23,23 +23,29 @@ func (s *Store) IncidentStore() *IncidentStore {
 	return &IncidentStore{db: s.db}
 }
 
-// Save inserts or updates an Incident in the database.
+// Save inserts or updates an Incident using a MERGE statement.
 func (s *IncidentStore) Save(ctx context.Context, i domain.Incident) error {
 	ids, err := json.Marshal(i.ResultIDs)
 	if err != nil {
-		return fmt.Errorf("postgres: marshal result_ids: %w", err)
+		return fmt.Errorf("azuresql: marshal result_ids: %w", err)
 	}
 
-	_, err = s.db.ExecContext(ctx,
-		`INSERT INTO incidents (id, target_id, state, first_seen, last_seen, result_ids)
-		 VALUES ($1, $2, $3, $4, $5, $6)
-		 ON CONFLICT (id) DO UPDATE
-		 SET target_id=$2, state=$3, first_seen=$4, last_seen=$5, result_ids=$6`,
+	_, err = s.db.ExecContext(ctx, `
+		MERGE incidents WITH (HOLDLOCK) AS T
+		USING (VALUES (@p1, @p2, @p3, @p4, @p5, @p6))
+			AS S(id, target_id, state, first_seen, last_seen, result_ids)
+		ON T.id = S.id
+		WHEN MATCHED THEN
+			UPDATE SET T.target_id=S.target_id, T.state=S.state,
+			           T.first_seen=S.first_seen, T.last_seen=S.last_seen, T.result_ids=S.result_ids
+		WHEN NOT MATCHED THEN
+			INSERT (id, target_id, state, first_seen, last_seen, result_ids)
+			VALUES (S.id, S.target_id, S.state, S.first_seen, S.last_seen, S.result_ids);`,
 		i.ID, i.TargetID, string(i.State),
 		i.FirstSeen.UTC(), i.LastSeen.UTC(), string(ids),
 	)
 	if err != nil {
-		return fmt.Errorf("postgres: save incident %q: %w", i.ID, err)
+		return fmt.Errorf("azuresql: save incident %q: %w", i.ID, err)
 	}
 	return nil
 }
@@ -48,7 +54,7 @@ func (s *IncidentStore) Save(ctx context.Context, i domain.Incident) error {
 func (s *IncidentStore) Get(ctx context.Context, id string) (domain.Incident, error) {
 	row := s.db.QueryRowContext(ctx,
 		`SELECT id, target_id, state, first_seen, last_seen, result_ids
-		 FROM incidents WHERE id = $1`, id)
+		 FROM incidents WHERE id = @p1`, id)
 	return scanIncident(row)
 }
 
@@ -67,10 +73,10 @@ func (s *IncidentStore) ListByState(ctx context.Context, state domain.IncidentSt
 	} else {
 		rows, err = s.db.QueryContext(ctx,
 			`SELECT id, target_id, state, first_seen, last_seen, result_ids
-			 FROM incidents WHERE state = $1 ORDER BY last_seen DESC`, string(state))
+			 FROM incidents WHERE state = @p1 ORDER BY last_seen DESC`, string(state))
 	}
 	if err != nil {
-		return nil, fmt.Errorf("postgres: list incidents: %w", err)
+		return nil, fmt.Errorf("azuresql: list incidents: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -83,7 +89,7 @@ func (s *IncidentStore) ListByState(ctx context.Context, state domain.IncidentSt
 		incidents = append(incidents, i)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("postgres: iterate incidents: %w", err)
+		return nil, fmt.Errorf("azuresql: iterate incidents: %w", err)
 	}
 	return incidents, nil
 }
@@ -92,24 +98,23 @@ func (s *IncidentStore) ListByState(ctx context.Context, state domain.IncidentSt
 func (s *IncidentStore) Update(ctx context.Context, i domain.Incident) error {
 	ids, err := json.Marshal(i.ResultIDs)
 	if err != nil {
-		return fmt.Errorf("postgres: marshal result_ids: %w", err)
+		return fmt.Errorf("azuresql: marshal result_ids: %w", err)
 	}
 
-	res, err := s.db.ExecContext(ctx,
-		`UPDATE incidents
-		 SET target_id=$1, state=$2, first_seen=$3, last_seen=$4, result_ids=$5
-		 WHERE id=$6`,
+	res, err := s.db.ExecContext(ctx, `
+		UPDATE incidents
+		SET target_id=@p1, state=@p2, first_seen=@p3, last_seen=@p4, result_ids=@p5
+		WHERE id=@p6`,
 		i.TargetID, string(i.State),
 		i.FirstSeen.UTC(), i.LastSeen.UTC(),
 		string(ids), i.ID,
 	)
 	if err != nil {
-		return fmt.Errorf("postgres: update incident %q: %w", i.ID, err)
+		return fmt.Errorf("azuresql: update incident %q: %w", i.ID, err)
 	}
-
 	n, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("postgres: rows affected: %w", err)
+		return fmt.Errorf("azuresql: rows affected: %w", err)
 	}
 	if n == 0 {
 		return sql.ErrNoRows
@@ -119,9 +124,9 @@ func (s *IncidentStore) Update(ctx context.Context, i domain.Incident) error {
 
 // DeleteByTargetID removes all Incidents associated with the given targetID.
 func (s *IncidentStore) DeleteByTargetID(ctx context.Context, targetID string) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM incidents WHERE target_id = $1`, targetID)
+	_, err := s.db.ExecContext(ctx, `DELETE FROM incidents WHERE target_id = @p1`, targetID)
 	if err != nil {
-		return fmt.Errorf("postgres: delete incidents for target %q: %w", targetID, err)
+		return fmt.Errorf("azuresql: delete incidents for target %q: %w", targetID, err)
 	}
 	return nil
 }
@@ -132,22 +137,18 @@ func scanIncident(s scanner) (domain.Incident, error) {
 		state   string
 		idsJSON string
 	)
-
 	err := s.Scan(&i.ID, &i.TargetID, &state, &i.FirstSeen, &i.LastSeen, &idsJSON)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Incident{}, sql.ErrNoRows
 	}
 	if err != nil {
-		return domain.Incident{}, fmt.Errorf("postgres: scan incident: %w", err)
+		return domain.Incident{}, fmt.Errorf("azuresql: scan incident: %w", err)
 	}
-
 	i.State = domain.IncidentState(state)
 	i.FirstSeen = i.FirstSeen.UTC()
 	i.LastSeen = i.LastSeen.UTC()
-
 	if err := json.Unmarshal([]byte(idsJSON), &i.ResultIDs); err != nil {
-		return domain.Incident{}, fmt.Errorf("postgres: unmarshal result_ids: %w", err)
+		return domain.Incident{}, fmt.Errorf("azuresql: unmarshal result_ids: %w", err)
 	}
-
 	return i, nil
 }

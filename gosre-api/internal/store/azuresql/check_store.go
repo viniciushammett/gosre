@@ -1,7 +1,7 @@
 // Copyright 2026 Vinicius Teixeira
 // Licensed under the Apache License, Version 2.0
 
-package postgres
+package azuresql
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"github.com/gosre/gosre-sdk/domain"
 )
 
-// CheckStore implements store.CheckStore for PostgreSQL.
+// CheckStore implements store.CheckStore for Azure SQL.
 type CheckStore struct {
 	db *sql.DB
 }
@@ -24,23 +24,29 @@ func (s *Store) CheckStore() *CheckStore {
 	return &CheckStore{db: s.db}
 }
 
-// Save inserts or updates a CheckConfig in the database.
+// Save inserts or updates a CheckConfig using a MERGE statement.
 func (s *CheckStore) Save(ctx context.Context, c domain.CheckConfig) error {
 	params, err := json.Marshal(c.Params)
 	if err != nil {
-		return fmt.Errorf("postgres: marshal params: %w", err)
+		return fmt.Errorf("azuresql: marshal params: %w", err)
 	}
 
-	_, err = s.db.ExecContext(ctx,
-		`INSERT INTO checks (id, type, target_id, interval, timeout, params)
-		 VALUES ($1, $2, $3, $4, $5, $6)
-		 ON CONFLICT (id) DO UPDATE
-		 SET type=$2, target_id=$3, interval=$4, timeout=$5, params=$6`,
+	_, err = s.db.ExecContext(ctx, `
+		MERGE checks WITH (HOLDLOCK) AS T
+		USING (VALUES (@p1, @p2, @p3, @p4, @p5, @p6))
+			AS S(id, type, target_id, interval_ns, timeout_ns, params)
+		ON T.id = S.id
+		WHEN MATCHED THEN
+			UPDATE SET T.type=S.type, T.target_id=S.target_id,
+			           T.interval_ns=S.interval_ns, T.timeout_ns=S.timeout_ns, T.params=S.params
+		WHEN NOT MATCHED THEN
+			INSERT (id, type, target_id, interval_ns, timeout_ns, params)
+			VALUES (S.id, S.type, S.target_id, S.interval_ns, S.timeout_ns, S.params);`,
 		c.ID, string(c.Type), c.TargetID,
 		c.Interval.Nanoseconds(), c.Timeout.Nanoseconds(), string(params),
 	)
 	if err != nil {
-		return fmt.Errorf("postgres: save check %q: %w", c.ID, err)
+		return fmt.Errorf("azuresql: save check %q: %w", c.ID, err)
 	}
 	return nil
 }
@@ -48,17 +54,16 @@ func (s *CheckStore) Save(ctx context.Context, c domain.CheckConfig) error {
 // Get retrieves a CheckConfig by ID. Returns sql.ErrNoRows if not present.
 func (s *CheckStore) Get(ctx context.Context, id string) (domain.CheckConfig, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, type, target_id, interval, timeout, params
-		 FROM checks WHERE id = $1`, id)
+		`SELECT id, type, target_id, interval_ns, timeout_ns, params FROM checks WHERE id = @p1`, id)
 	return scanCheck(row)
 }
 
 // List returns all CheckConfigs. Returns an empty (non-nil) slice when none exist.
 func (s *CheckStore) List(ctx context.Context) ([]domain.CheckConfig, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, type, target_id, interval, timeout, params FROM checks`)
+		`SELECT id, type, target_id, interval_ns, timeout_ns, params FROM checks`)
 	if err != nil {
-		return nil, fmt.Errorf("postgres: list checks: %w", err)
+		return nil, fmt.Errorf("azuresql: list checks: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -71,33 +76,32 @@ func (s *CheckStore) List(ctx context.Context) ([]domain.CheckConfig, error) {
 		checks = append(checks, c)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("postgres: iterate checks: %w", err)
+		return nil, fmt.Errorf("azuresql: iterate checks: %w", err)
 	}
 	return checks, nil
 }
 
-// DeleteByTargetID removes all CheckConfigs associated with the given targetID.
-func (s *CheckStore) DeleteByTargetID(ctx context.Context, targetID string) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM checks WHERE target_id = $1`, targetID)
+// Delete removes a CheckConfig by ID. Returns sql.ErrNoRows if not present.
+func (s *CheckStore) Delete(ctx context.Context, id string) error {
+	res, err := s.db.ExecContext(ctx, `DELETE FROM checks WHERE id = @p1`, id)
 	if err != nil {
-		return fmt.Errorf("postgres: delete checks for target %q: %w", targetID, err)
+		return fmt.Errorf("azuresql: delete check %q: %w", id, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("azuresql: rows affected: %w", err)
+	}
+	if n == 0 {
+		return sql.ErrNoRows
 	}
 	return nil
 }
 
-// Delete removes a CheckConfig by ID. Returns sql.ErrNoRows if not present.
-func (s *CheckStore) Delete(ctx context.Context, id string) error {
-	res, err := s.db.ExecContext(ctx, `DELETE FROM checks WHERE id = $1`, id)
+// DeleteByTargetID removes all CheckConfigs associated with the given targetID.
+func (s *CheckStore) DeleteByTargetID(ctx context.Context, targetID string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM checks WHERE target_id = @p1`, targetID)
 	if err != nil {
-		return fmt.Errorf("postgres: delete check %q: %w", id, err)
-	}
-
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("postgres: rows affected: %w", err)
-	}
-	if n == 0 {
-		return sql.ErrNoRows
+		return fmt.Errorf("azuresql: delete checks for target %q: %w", targetID, err)
 	}
 	return nil
 }
@@ -110,22 +114,18 @@ func scanCheck(s scanner) (domain.CheckConfig, error) {
 		timeoutNs  int64
 		paramsJSON string
 	)
-
 	err := s.Scan(&c.ID, &typ, &c.TargetID, &intervalNs, &timeoutNs, &paramsJSON)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.CheckConfig{}, sql.ErrNoRows
 	}
 	if err != nil {
-		return domain.CheckConfig{}, fmt.Errorf("postgres: scan check: %w", err)
+		return domain.CheckConfig{}, fmt.Errorf("azuresql: scan check: %w", err)
 	}
-
 	c.Type = domain.CheckType(typ)
 	c.Interval = time.Duration(intervalNs)
 	c.Timeout = time.Duration(timeoutNs)
-
 	if err := json.Unmarshal([]byte(paramsJSON), &c.Params); err != nil {
-		return domain.CheckConfig{}, fmt.Errorf("postgres: unmarshal params: %w", err)
+		return domain.CheckConfig{}, fmt.Errorf("azuresql: unmarshal params: %w", err)
 	}
-
 	return c, nil
 }

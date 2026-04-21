@@ -4,24 +4,42 @@
 package v1
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"github.com/gosre/gosre-api/internal/store/sqlite"
 	"github.com/gosre/gosre-sdk/domain"
 )
 
+// AgentRecord is the shared data contract between the handler and agent store implementations.
+type AgentRecord struct {
+	ID       string
+	Hostname string
+	Version  string
+	LastSeen time.Time
+}
+
+type agentStorer interface {
+	Register(ctx context.Context, a AgentRecord) error
+	List(ctx context.Context) ([]AgentRecord, error)
+	Heartbeat(ctx context.Context, id string) error
+}
+
+type checkStorer interface {
+	List(ctx context.Context) ([]domain.CheckConfig, error)
+}
+
 // AgentHandler handles HTTP requests for agent lifecycle endpoints.
 type AgentHandler struct {
-	agents *sqlite.AgentStore
-	checks *sqlite.CheckStore
+	agents agentStorer
+	checks checkStorer
 }
 
 // NewAgentHandler constructs an AgentHandler.
-func NewAgentHandler(agents *sqlite.AgentStore, checks *sqlite.CheckStore) *AgentHandler {
+func NewAgentHandler(agents agentStorer, checks checkStorer) *AgentHandler {
 	return &AgentHandler{agents: agents, checks: checks}
 }
 
@@ -46,12 +64,7 @@ func (h *AgentHandler) List(c *gin.Context) {
 	}
 	out := make([]agentResponse, 0, len(recs))
 	for _, r := range recs {
-		out = append(out, agentResponse{
-			ID:       r.ID,
-			Hostname: r.Hostname,
-			Version:  r.Version,
-			LastSeen: r.LastSeen,
-		})
+		out = append(out, agentResponse(r))
 	}
 	OK(c, http.StatusOK, out)
 }
@@ -64,7 +77,7 @@ func (h *AgentHandler) Register(c *gin.Context) {
 		return
 	}
 
-	rec := sqlite.AgentRecord{
+	rec := AgentRecord{
 		ID:       uuid.New().String(),
 		Hostname: body.Hostname,
 		Version:  body.Version,
@@ -75,12 +88,7 @@ func (h *AgentHandler) Register(c *gin.Context) {
 		return
 	}
 
-	OK(c, http.StatusCreated, agentResponse{
-		ID:       rec.ID,
-		Hostname: rec.Hostname,
-		Version:  rec.Version,
-		LastSeen: rec.LastSeen,
-	})
+	OK(c, http.StatusCreated, agentResponse(rec))
 }
 
 // Heartbeat handles POST /api/v1/agents/:id/heartbeat.
