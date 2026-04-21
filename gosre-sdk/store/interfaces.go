@@ -43,3 +43,30 @@ type IncidentStore interface {
 	Update(ctx context.Context, i domain.Incident) error
 	DeleteByTargetID(ctx context.Context, targetID string) error
 }
+
+// OrgStore defines persistence operations for Organization entities.
+type OrgStore interface {
+	Save(ctx context.Context, o domain.Organization) error
+	Get(ctx context.Context, id string) (domain.Organization, error)
+	GetBySlug(ctx context.Context, slug string) (domain.Organization, error)
+	List(ctx context.Context) ([]domain.Organization, error)
+	Delete(ctx context.Context, id string) error
+}
+
+// TeamStore defines persistence operations for Team entities.
+type TeamStore interface {
+	Save(ctx context.Context, t domain.Team) error
+	Get(ctx context.Context, id string) (domain.Team, error)
+	ListByOrg(ctx context.Context, orgID string) ([]domain.Team, error)
+	Delete(ctx context.Context, id string) error
+}
+
+// ProjectStore defines persistence operations for Project entities.
+type ProjectStore interface {
+	Save(ctx context.Context, p domain.Project) error
+	Get(ctx context.Context, id string) (domain.Project, error)
+	GetBySlug(ctx context.Context, orgID, slug string) (domain.Project, error)
+	ListByOrg(ctx context.Context, orgID string) ([]domain.Project, error)
+	ListByTeam(ctx context.Context, teamID string) ([]domain.Project, error)
+	Delete(ctx context.Context, id string) error
+}
