@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import OrgSwitcher from "./OrgSwitcher";
 
 const navItems = [
   { to: "/", label: "Dashboard", end: true },
@@ -7,6 +8,7 @@ const navItems = [
   { to: "/results", label: "Results" },
   { to: "/checks", label: "Checks" },
   { to: "/agents", label: "Agents" },
+  { to: "/settings/organization", label: "Settings" },
 ];
 
 export default function Layout() {
@@ -40,10 +42,11 @@ export default function Layout() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-12 flex items-center px-6 border-b border-surface-border bg-surface-raised flex-shrink-0">
+        <header className="h-12 flex items-center justify-between px-6 border-b border-surface-border bg-surface-raised flex-shrink-0">
           <span className="text-xs text-gray-500 font-mono">
             {import.meta.env.VITE_API_URL ?? "http://localhost:8080"}
           </span>
+          <OrgSwitcher />
         </header>
         <main className="flex-1 overflow-y-auto bg-surface">
           <Outlet />
