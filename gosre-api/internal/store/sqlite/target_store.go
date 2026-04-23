@@ -26,9 +26,9 @@ func (s *Store) Save(ctx context.Context, t domain.Target) error {
 	}
 
 	_, err = s.db.ExecContext(ctx,
-		`INSERT OR REPLACE INTO targets (id, name, type, address, tags, metadata)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
-		t.ID, t.Name, string(t.Type), t.Address, string(tags), string(meta),
+		`INSERT OR REPLACE INTO targets (id, name, type, address, tags, metadata, project_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		t.ID, t.Name, string(t.Type), t.Address, string(tags), string(meta), t.ProjectID,
 	)
 	if err != nil {
 		return fmt.Errorf("sqlite: save target %q: %w", t.ID, err)
@@ -39,7 +39,7 @@ func (s *Store) Save(ctx context.Context, t domain.Target) error {
 // Get retrieves a Target by ID. Returns domain.ErrTargetNotFound if not present.
 func (s *Store) Get(ctx context.Context, id string) (domain.Target, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, name, type, address, tags, metadata FROM targets WHERE id = ?`, id)
+		`SELECT id, name, type, address, tags, metadata, project_id FROM targets WHERE id = ?`, id)
 
 	return scanTarget(row)
 }
@@ -47,7 +47,7 @@ func (s *Store) Get(ctx context.Context, id string) (domain.Target, error) {
 // List returns all targets. Returns an empty (non-nil) slice when none exist.
 func (s *Store) List(ctx context.Context) ([]domain.Target, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, name, type, address, tags, metadata FROM targets`)
+		`SELECT id, name, type, address, tags, metadata, project_id FROM targets`)
 	if err != nil {
 		return nil, fmt.Errorf("sqlite: list targets: %w", err)
 	}
@@ -97,7 +97,7 @@ func scanTarget(s scanner) (domain.Target, error) {
 		metaJSON string
 	)
 
-	err := s.Scan(&t.ID, &t.Name, &typ, &t.Address, &tagsJSON, &metaJSON)
+	err := s.Scan(&t.ID, &t.Name, &typ, &t.Address, &tagsJSON, &metaJSON, &t.ProjectID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Target{}, domain.ErrTargetNotFound
 	}

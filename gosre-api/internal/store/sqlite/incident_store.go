@@ -33,12 +33,12 @@ func (s *IncidentStore) Save(ctx context.Context, i domain.Incident) error {
 
 	_, err = s.db.ExecContext(ctx,
 		`INSERT OR REPLACE INTO incidents
-		 (id, target_id, state, first_seen, last_seen, result_ids)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
+		 (id, target_id, state, first_seen, last_seen, result_ids, project_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		i.ID, i.TargetID, string(i.State),
 		i.FirstSeen.UTC().Format(time.RFC3339Nano),
 		i.LastSeen.UTC().Format(time.RFC3339Nano),
-		string(ids),
+		string(ids), i.ProjectID,
 	)
 	if err != nil {
 		return fmt.Errorf("sqlite: save incident %q: %w", i.ID, err)
@@ -49,7 +49,7 @@ func (s *IncidentStore) Save(ctx context.Context, i domain.Incident) error {
 // Get retrieves an Incident by ID. Returns sql.ErrNoRows if not present.
 func (s *IncidentStore) Get(ctx context.Context, id string) (domain.Incident, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, target_id, state, first_seen, last_seen, result_ids
+		`SELECT id, target_id, state, first_seen, last_seen, result_ids, project_id
 		 FROM incidents WHERE id = ?`, id)
 	return scanIncident(row)
 }
@@ -64,11 +64,11 @@ func (s *IncidentStore) ListByState(ctx context.Context, state domain.IncidentSt
 
 	if state == "" {
 		rows, err = s.db.QueryContext(ctx,
-			`SELECT id, target_id, state, first_seen, last_seen, result_ids
+			`SELECT id, target_id, state, first_seen, last_seen, result_ids, project_id
 			 FROM incidents ORDER BY last_seen DESC`)
 	} else {
 		rows, err = s.db.QueryContext(ctx,
-			`SELECT id, target_id, state, first_seen, last_seen, result_ids
+			`SELECT id, target_id, state, first_seen, last_seen, result_ids, project_id
 			 FROM incidents WHERE state = ? ORDER BY last_seen DESC`, string(state))
 	}
 	if err != nil {
@@ -137,7 +137,7 @@ func scanIncident(s scanner) (domain.Incident, error) {
 		idsJSON   string
 	)
 
-	err := s.Scan(&i.ID, &i.TargetID, &state, &firstSeen, &lastSeen, &idsJSON)
+	err := s.Scan(&i.ID, &i.TargetID, &state, &firstSeen, &lastSeen, &idsJSON, &i.ProjectID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Incident{}, sql.ErrNoRows
 	}

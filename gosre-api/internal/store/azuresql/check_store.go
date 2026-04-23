@@ -33,17 +33,18 @@ func (s *CheckStore) Save(ctx context.Context, c domain.CheckConfig) error {
 
 	_, err = s.db.ExecContext(ctx, `
 		MERGE checks WITH (HOLDLOCK) AS T
-		USING (VALUES (@p1, @p2, @p3, @p4, @p5, @p6))
-			AS S(id, type, target_id, interval_ns, timeout_ns, params)
+		USING (VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7))
+			AS S(id, type, target_id, interval_ns, timeout_ns, params, project_id)
 		ON T.id = S.id
 		WHEN MATCHED THEN
 			UPDATE SET T.type=S.type, T.target_id=S.target_id,
-			           T.interval_ns=S.interval_ns, T.timeout_ns=S.timeout_ns, T.params=S.params
+			           T.interval_ns=S.interval_ns, T.timeout_ns=S.timeout_ns, T.params=S.params,
+			           T.project_id=S.project_id
 		WHEN NOT MATCHED THEN
-			INSERT (id, type, target_id, interval_ns, timeout_ns, params)
-			VALUES (S.id, S.type, S.target_id, S.interval_ns, S.timeout_ns, S.params);`,
+			INSERT (id, type, target_id, interval_ns, timeout_ns, params, project_id)
+			VALUES (S.id, S.type, S.target_id, S.interval_ns, S.timeout_ns, S.params, S.project_id);`,
 		c.ID, string(c.Type), c.TargetID,
-		c.Interval.Nanoseconds(), c.Timeout.Nanoseconds(), string(params),
+		c.Interval.Nanoseconds(), c.Timeout.Nanoseconds(), string(params), c.ProjectID,
 	)
 	if err != nil {
 		return fmt.Errorf("azuresql: save check %q: %w", c.ID, err)
@@ -54,14 +55,14 @@ func (s *CheckStore) Save(ctx context.Context, c domain.CheckConfig) error {
 // Get retrieves a CheckConfig by ID. Returns sql.ErrNoRows if not present.
 func (s *CheckStore) Get(ctx context.Context, id string) (domain.CheckConfig, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, type, target_id, interval_ns, timeout_ns, params FROM checks WHERE id = @p1`, id)
+		`SELECT id, type, target_id, interval_ns, timeout_ns, params, project_id FROM checks WHERE id = @p1`, id)
 	return scanCheck(row)
 }
 
 // List returns all CheckConfigs. Returns an empty (non-nil) slice when none exist.
 func (s *CheckStore) List(ctx context.Context) ([]domain.CheckConfig, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, type, target_id, interval_ns, timeout_ns, params FROM checks`)
+		`SELECT id, type, target_id, interval_ns, timeout_ns, params, project_id FROM checks`)
 	if err != nil {
 		return nil, fmt.Errorf("azuresql: list checks: %w", err)
 	}
@@ -114,7 +115,7 @@ func scanCheck(s scanner) (domain.CheckConfig, error) {
 		timeoutNs  int64
 		paramsJSON string
 	)
-	err := s.Scan(&c.ID, &typ, &c.TargetID, &intervalNs, &timeoutNs, &paramsJSON)
+	err := s.Scan(&c.ID, &typ, &c.TargetID, &intervalNs, &timeoutNs, &paramsJSON, &c.ProjectID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.CheckConfig{}, sql.ErrNoRows
 	}

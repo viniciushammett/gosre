@@ -32,11 +32,11 @@ func (s *CheckStore) Save(ctx context.Context, c domain.CheckConfig) error {
 	}
 
 	_, err = s.db.ExecContext(ctx,
-		`INSERT OR REPLACE INTO checks (id, type, target_id, interval, timeout, params)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
+		`INSERT OR REPLACE INTO checks (id, type, target_id, interval, timeout, params, project_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		c.ID, string(c.Type), c.TargetID,
 		c.Interval.Nanoseconds(), c.Timeout.Nanoseconds(),
-		string(params),
+		string(params), c.ProjectID,
 	)
 	if err != nil {
 		return fmt.Errorf("sqlite: save check %q: %w", c.ID, err)
@@ -47,7 +47,7 @@ func (s *CheckStore) Save(ctx context.Context, c domain.CheckConfig) error {
 // Get retrieves a CheckConfig by ID. Returns sql.ErrNoRows if not present.
 func (s *CheckStore) Get(ctx context.Context, id string) (domain.CheckConfig, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, type, target_id, interval, timeout, params
+		`SELECT id, type, target_id, interval, timeout, params, project_id
 		 FROM checks WHERE id = ?`, id)
 	return scanCheck(row)
 }
@@ -55,7 +55,7 @@ func (s *CheckStore) Get(ctx context.Context, id string) (domain.CheckConfig, er
 // List returns all CheckConfigs. Returns an empty (non-nil) slice when none exist.
 func (s *CheckStore) List(ctx context.Context) ([]domain.CheckConfig, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, type, target_id, interval, timeout, params FROM checks`)
+		`SELECT id, type, target_id, interval, timeout, params, project_id FROM checks`)
 	if err != nil {
 		return nil, fmt.Errorf("sqlite: list checks: %w", err)
 	}
@@ -110,7 +110,7 @@ func scanCheck(s scanner) (domain.CheckConfig, error) {
 		paramsJSON string
 	)
 
-	err := s.Scan(&c.ID, &typ, &c.TargetID, &intervalNs, &timeoutNs, &paramsJSON)
+	err := s.Scan(&c.ID, &typ, &c.TargetID, &intervalNs, &timeoutNs, &paramsJSON, &c.ProjectID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.CheckConfig{}, sql.ErrNoRows
 	}

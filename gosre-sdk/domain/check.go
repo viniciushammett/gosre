@@ -25,7 +25,8 @@ type CheckConfig struct {
 	TargetID string            `json:"target_id"`
 	Interval time.Duration     `json:"interval"`
 	Timeout  time.Duration     `json:"timeout"`
-	Params   map[string]string `json:"params,omitempty"`
+	Params    map[string]string `json:"params,omitempty"`
+	ProjectID string            `json:"project_id,omitempty"`
 }
 
 // Checker executes a check against a Target and returns a Result.

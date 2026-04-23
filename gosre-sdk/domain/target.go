@@ -19,6 +19,7 @@ type Target struct {
 	Name     string            `json:"name"`
 	Type     TargetType        `json:"type"`
 	Address  string            `json:"address"`
-	Tags     []string          `json:"tags,omitempty"`
-	Metadata map[string]string `json:"metadata,omitempty"`
+	Tags      []string          `json:"tags,omitempty"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
+	ProjectID string            `json:"project_id,omitempty"`
 }

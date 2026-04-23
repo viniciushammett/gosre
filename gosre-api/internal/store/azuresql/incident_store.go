@@ -32,17 +32,18 @@ func (s *IncidentStore) Save(ctx context.Context, i domain.Incident) error {
 
 	_, err = s.db.ExecContext(ctx, `
 		MERGE incidents WITH (HOLDLOCK) AS T
-		USING (VALUES (@p1, @p2, @p3, @p4, @p5, @p6))
-			AS S(id, target_id, state, first_seen, last_seen, result_ids)
+		USING (VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7))
+			AS S(id, target_id, state, first_seen, last_seen, result_ids, project_id)
 		ON T.id = S.id
 		WHEN MATCHED THEN
 			UPDATE SET T.target_id=S.target_id, T.state=S.state,
-			           T.first_seen=S.first_seen, T.last_seen=S.last_seen, T.result_ids=S.result_ids
+			           T.first_seen=S.first_seen, T.last_seen=S.last_seen, T.result_ids=S.result_ids,
+			           T.project_id=S.project_id
 		WHEN NOT MATCHED THEN
-			INSERT (id, target_id, state, first_seen, last_seen, result_ids)
-			VALUES (S.id, S.target_id, S.state, S.first_seen, S.last_seen, S.result_ids);`,
+			INSERT (id, target_id, state, first_seen, last_seen, result_ids, project_id)
+			VALUES (S.id, S.target_id, S.state, S.first_seen, S.last_seen, S.result_ids, S.project_id);`,
 		i.ID, i.TargetID, string(i.State),
-		i.FirstSeen.UTC(), i.LastSeen.UTC(), string(ids),
+		i.FirstSeen.UTC(), i.LastSeen.UTC(), string(ids), i.ProjectID,
 	)
 	if err != nil {
 		return fmt.Errorf("azuresql: save incident %q: %w", i.ID, err)
@@ -53,7 +54,7 @@ func (s *IncidentStore) Save(ctx context.Context, i domain.Incident) error {
 // Get retrieves an Incident by ID. Returns sql.ErrNoRows if not present.
 func (s *IncidentStore) Get(ctx context.Context, id string) (domain.Incident, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, target_id, state, first_seen, last_seen, result_ids
+		`SELECT id, target_id, state, first_seen, last_seen, result_ids, project_id
 		 FROM incidents WHERE id = @p1`, id)
 	return scanIncident(row)
 }
@@ -68,11 +69,11 @@ func (s *IncidentStore) ListByState(ctx context.Context, state domain.IncidentSt
 
 	if state == "" {
 		rows, err = s.db.QueryContext(ctx,
-			`SELECT id, target_id, state, first_seen, last_seen, result_ids
+			`SELECT id, target_id, state, first_seen, last_seen, result_ids, project_id
 			 FROM incidents ORDER BY last_seen DESC`)
 	} else {
 		rows, err = s.db.QueryContext(ctx,
-			`SELECT id, target_id, state, first_seen, last_seen, result_ids
+			`SELECT id, target_id, state, first_seen, last_seen, result_ids, project_id
 			 FROM incidents WHERE state = @p1 ORDER BY last_seen DESC`, string(state))
 	}
 	if err != nil {
@@ -137,7 +138,7 @@ func scanIncident(s scanner) (domain.Incident, error) {
 		state   string
 		idsJSON string
 	)
-	err := s.Scan(&i.ID, &i.TargetID, &state, &i.FirstSeen, &i.LastSeen, &idsJSON)
+	err := s.Scan(&i.ID, &i.TargetID, &state, &i.FirstSeen, &i.LastSeen, &idsJSON, &i.ProjectID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Incident{}, sql.ErrNoRows
 	}

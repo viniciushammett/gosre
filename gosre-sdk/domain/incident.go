@@ -22,4 +22,5 @@ type Incident struct {
 	FirstSeen time.Time     `json:"first_seen"`
 	LastSeen  time.Time     `json:"last_seen"`
 	ResultIDs []string      `json:"result_ids,omitempty"`
+	ProjectID string        `json:"project_id,omitempty"`
 }

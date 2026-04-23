@@ -36,15 +36,16 @@ func (s *TargetStore) Save(ctx context.Context, t domain.Target) error {
 
 	_, err = s.db.ExecContext(ctx, `
 		MERGE targets WITH (HOLDLOCK) AS T
-		USING (VALUES (@p1, @p2, @p3, @p4, @p5, @p6))
-			AS S(id, name, type, address, tags, metadata)
+		USING (VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7))
+			AS S(id, name, type, address, tags, metadata, project_id)
 		ON T.id = S.id
 		WHEN MATCHED THEN
-			UPDATE SET T.name=S.name, T.type=S.type, T.address=S.address, T.tags=S.tags, T.metadata=S.metadata
+			UPDATE SET T.name=S.name, T.type=S.type, T.address=S.address, T.tags=S.tags, T.metadata=S.metadata,
+			           T.project_id=S.project_id
 		WHEN NOT MATCHED THEN
-			INSERT (id, name, type, address, tags, metadata)
-			VALUES (S.id, S.name, S.type, S.address, S.tags, S.metadata);`,
-		t.ID, t.Name, string(t.Type), t.Address, string(tags), string(meta),
+			INSERT (id, name, type, address, tags, metadata, project_id)
+			VALUES (S.id, S.name, S.type, S.address, S.tags, S.metadata, S.project_id);`,
+		t.ID, t.Name, string(t.Type), t.Address, string(tags), string(meta), t.ProjectID,
 	)
 	if err != nil {
 		return fmt.Errorf("azuresql: save target %q: %w", t.ID, err)
@@ -55,14 +56,14 @@ func (s *TargetStore) Save(ctx context.Context, t domain.Target) error {
 // Get retrieves a Target by ID. Returns domain.ErrTargetNotFound if not present.
 func (s *TargetStore) Get(ctx context.Context, id string) (domain.Target, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, name, type, address, tags, metadata FROM targets WHERE id = @p1`, id)
+		`SELECT id, name, type, address, tags, metadata, project_id FROM targets WHERE id = @p1`, id)
 	return scanTarget(row)
 }
 
 // List returns all targets. Returns an empty (non-nil) slice when none exist.
 func (s *TargetStore) List(ctx context.Context) ([]domain.Target, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, name, type, address, tags, metadata FROM targets`)
+		`SELECT id, name, type, address, tags, metadata, project_id FROM targets`)
 	if err != nil {
 		return nil, fmt.Errorf("azuresql: list targets: %w", err)
 	}
@@ -105,7 +106,7 @@ func scanTarget(s scanner) (domain.Target, error) {
 		tagsJSON string
 		metaJSON string
 	)
-	err := s.Scan(&t.ID, &t.Name, &typ, &t.Address, &tagsJSON, &metaJSON)
+	err := s.Scan(&t.ID, &t.Name, &typ, &t.Address, &tagsJSON, &metaJSON, &t.ProjectID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Target{}, domain.ErrTargetNotFound
 	}
