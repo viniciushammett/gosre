@@ -49,6 +49,9 @@ func main() {
 		incidentSvc  *service.IncidentService
 		checkSvc     *service.CheckService
 		agentHandler *v1.AgentHandler
+		orgSvc       *service.OrgService
+		teamSvc      *service.TeamService
+		projectSvc   *service.ProjectService
 	)
 
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
@@ -80,6 +83,9 @@ func main() {
 	resultHandler := v1.NewResultHandler(resultSvc)
 	incidentHandler := v1.NewIncidentHandler(incidentSvc)
 	checkHandler := v1.NewCheckHandler(checkSvc)
+	orgHandler := v1.NewOrgHandler(orgSvc)
+	teamHandler := v1.NewTeamHandler(teamSvc)
+	projectHandler := v1.NewProjectHandler(projectSvc)
 
 	router := gin.New()
 	router.Use(gin.Logger())
@@ -111,6 +117,24 @@ func main() {
 	api.POST("/agents/register", agentHandler.Register)
 	api.POST("/agents/:id/heartbeat", agentHandler.Heartbeat)
 	api.GET("/agents/:id/assignments", agentHandler.Assignments)
+
+	orgs := api.Group("/organizations")
+	orgs.GET("", orgHandler.List)
+	orgs.POST("", orgHandler.Create)
+	orgs.GET("/:id", orgHandler.Get)
+	orgs.DELETE("/:id", orgHandler.Delete)
+
+	orgTeams := api.Group("/organizations/:org_id/teams")
+	orgTeams.GET("", teamHandler.ListByOrg)
+	orgTeams.POST("", teamHandler.Create)
+	orgTeams.GET("/:id", teamHandler.Get)
+	orgTeams.DELETE("/:id", teamHandler.Delete)
+
+	orgProjects := api.Group("/organizations/:org_id/projects")
+	orgProjects.GET("", projectHandler.ListByOrg)
+	orgProjects.POST("", projectHandler.Create)
+	orgProjects.GET("/:id", projectHandler.Get)
+	orgProjects.DELETE("/:id", projectHandler.Delete)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
