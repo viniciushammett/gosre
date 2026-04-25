@@ -36,6 +36,12 @@ func main() {
 		port = "8080"
 	}
 
+	jwtSecret := os.Getenv("GOSRE_JWT_SECRET")
+	if jwtSecret == "" {
+		logger.Warn("GOSRE_JWT_SECRET not set; using insecure dev default — do not use in production")
+		jwtSecret = "dev-secret-change-in-production"
+	}
+
 	checkers := map[domain.CheckType]domain.Checker{
 		domain.CheckTypeHTTP: check.NewHTTPChecker(),
 		domain.CheckTypeTCP:  check.NewTCPChecker(),
@@ -44,14 +50,14 @@ func main() {
 	}
 
 	var (
-		targetSvc    *service.TargetService
-		resultSvc    *service.ResultService
-		incidentSvc  *service.IncidentService
-		checkSvc     *service.CheckService
-		agentHandler *v1.AgentHandler
-		orgSvc       *service.OrgService
-		teamSvc      *service.TeamService
-		projectSvc   *service.ProjectService
+		targetSvc   *service.TargetService
+		resultSvc   *service.ResultService
+		incidentSvc *service.IncidentService
+		checkSvc    *service.CheckService
+		agentH      *v1.AgentHandler
+		orgSvc      *service.OrgService
+		teamSvc     *service.TeamService
+		projectSvc  *service.ProjectService
 	)
 
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
@@ -65,7 +71,7 @@ func main() {
 		resultSvc = service.NewResultService(az.ResultStore())
 		incidentSvc = service.NewIncidentService(az.IncidentStore(), az.ResultStore())
 		checkSvc = service.NewCheckService(az.CheckStore(), az.TargetStore(), resultSvc, incidentSvc, checkers)
-		agentHandler = v1.NewAgentHandler(az.AgentStore(), az.CheckStore())
+		agentH = v1.NewAgentHandler(az.AgentStore(), az.CheckStore())
 	} else {
 		logger.Info("using sqlite store", zap.String("path", "gosre.db"))
 		lite, err := sqlite.New("gosre.db")
@@ -76,65 +82,70 @@ func main() {
 		resultSvc = service.NewResultService(lite.ResultStore())
 		incidentSvc = service.NewIncidentService(lite.IncidentStore(), lite.ResultStore())
 		checkSvc = service.NewCheckService(lite.CheckStore(), lite, resultSvc, incidentSvc, checkers)
-		agentHandler = v1.NewAgentHandler(lite.AgentStore(), lite.CheckStore())
+		agentH = v1.NewAgentHandler(lite.AgentStore(), lite.CheckStore())
 	}
 
-	targetHandler := v1.NewTargetHandler(targetSvc)
-	resultHandler := v1.NewResultHandler(resultSvc)
-	incidentHandler := v1.NewIncidentHandler(incidentSvc)
-	checkHandler := v1.NewCheckHandler(checkSvc)
-	orgHandler := v1.NewOrgHandler(orgSvc)
-	teamHandler := v1.NewTeamHandler(teamSvc)
-	projectHandler := v1.NewProjectHandler(projectSvc)
+	targetH := v1.NewTargetHandler(targetSvc)
+	resultH := v1.NewResultHandler(resultSvc)
+	incidentH := v1.NewIncidentHandler(incidentSvc)
+	checkH := v1.NewCheckHandler(checkSvc)
+	orgH := v1.NewOrgHandler(orgSvc)
+	teamH := v1.NewTeamHandler(teamSvc)
+	projectH := v1.NewProjectHandler(projectSvc)
 
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(middleware.CORS())
 
+	// Public — no authentication required
 	router.GET("/healthz", v1.HealthHandler)
+	router.POST("/api/v1/agents/register", agentH.Register)
 
+	// Agent operational — API key only (used by gosre-agent process)
+	agentOps := router.Group("/api/v1/agents")
+	agentOps.Use(middleware.APIKey())
+	agentOps.POST("/:id/heartbeat", agentH.Heartbeat)
+	agentOps.GET("/:id/assignments", agentH.Assignments)
+
+	// JWT-protected — viewer+ (any authenticated user)
 	api := router.Group("/api/v1")
-	api.Use(middleware.APIKey())
-	api.GET("/targets", targetHandler.ListTargets)
-	api.POST("/targets", targetHandler.CreateTarget)
-	api.GET("/targets/:id", targetHandler.GetTarget)
-	api.PUT("/targets/:id", targetHandler.UpdateTarget)
-	api.DELETE("/targets/:id", targetHandler.DeleteTarget)
+	api.Use(middleware.JWT(jwtSecret))
 
-	api.GET("/checks", checkHandler.ListChecks)
-	api.POST("/checks", checkHandler.CreateCheck)
-	api.POST("/checks/:id/run", checkHandler.RunCheck)
+	api.GET("/targets", targetH.ListTargets)
+	api.GET("/targets/:id", targetH.GetTarget)
+	api.GET("/checks", checkH.ListChecks)
+	api.GET("/results", resultH.ListResults)
+	api.GET("/results/:id", resultH.GetResult)
+	api.GET("/incidents", incidentH.ListIncidents)
+	api.GET("/agents", agentH.List)
+	api.GET("/organizations", orgH.List)
+	api.GET("/organizations/:id", orgH.Get)
+	api.GET("/organizations/:org_id/teams", teamH.ListByOrg)
+	api.GET("/organizations/:org_id/teams/:id", teamH.Get)
+	api.GET("/organizations/:org_id/projects", projectH.ListByOrg)
+	api.GET("/organizations/:org_id/projects/:id", projectH.Get)
 
-	api.GET("/results", resultHandler.ListResults)
-	api.GET("/results/:id", resultHandler.GetResult)
-	api.POST("/results", resultHandler.PostResult)
+	// JWT-protected — operator+ (write access)
+	op := api.Group("/")
+	op.Use(middleware.RequireRole("operator", "admin", "owner"))
+	op.POST("/targets", targetH.CreateTarget)
+	op.PUT("/targets/:id", targetH.UpdateTarget)
+	op.POST("/checks", checkH.CreateCheck)
+	op.POST("/checks/:id/run", checkH.RunCheck)
+	op.POST("/results", resultH.PostResult)
+	op.PATCH("/incidents/:id", incidentH.PatchIncident)
+	op.POST("/organizations", orgH.Create)
+	op.POST("/organizations/:org_id/teams", teamH.Create)
+	op.POST("/organizations/:org_id/projects", projectH.Create)
 
-	api.GET("/incidents", incidentHandler.ListIncidents)
-	api.PATCH("/incidents/:id", incidentHandler.PatchIncident)
-
-	api.GET("/agents", agentHandler.List)
-	api.POST("/agents/register", agentHandler.Register)
-	api.POST("/agents/:id/heartbeat", agentHandler.Heartbeat)
-	api.GET("/agents/:id/assignments", agentHandler.Assignments)
-
-	orgs := api.Group("/organizations")
-	orgs.GET("", orgHandler.List)
-	orgs.POST("", orgHandler.Create)
-	orgs.GET("/:id", orgHandler.Get)
-	orgs.DELETE("/:id", orgHandler.Delete)
-
-	orgTeams := api.Group("/organizations/:org_id/teams")
-	orgTeams.GET("", teamHandler.ListByOrg)
-	orgTeams.POST("", teamHandler.Create)
-	orgTeams.GET("/:id", teamHandler.Get)
-	orgTeams.DELETE("/:id", teamHandler.Delete)
-
-	orgProjects := api.Group("/organizations/:org_id/projects")
-	orgProjects.GET("", projectHandler.ListByOrg)
-	orgProjects.POST("", projectHandler.Create)
-	orgProjects.GET("/:id", projectHandler.Get)
-	orgProjects.DELETE("/:id", projectHandler.Delete)
+	// JWT-protected — admin+ (destructive operations)
+	adm := api.Group("/")
+	adm.Use(middleware.RequireRole("admin", "owner"))
+	adm.DELETE("/targets/:id", targetH.DeleteTarget)
+	adm.DELETE("/organizations/:id", orgH.Delete)
+	adm.DELETE("/organizations/:org_id/teams/:id", teamH.Delete)
+	adm.DELETE("/organizations/:org_id/projects/:id", projectH.Delete)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
