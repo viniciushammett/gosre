@@ -1,5 +1,6 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import OrgSwitcher from "./OrgSwitcher";
+import { useAuth } from "../hooks/useAuth";
 
 const navItems = [
   { to: "/", label: "Dashboard", end: true },
@@ -12,6 +13,14 @@ const navItems = [
 ];
 
 export default function Layout() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  async function handleLogout() {
+    await logout();
+    navigate("/login");
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
       <aside className="w-52 flex-shrink-0 bg-surface-raised border-r border-surface-border flex flex-col">
@@ -46,7 +55,20 @@ export default function Layout() {
           <span className="text-xs text-gray-500 font-mono">
             {import.meta.env.VITE_API_URL ?? "http://localhost:8080"}
           </span>
-          <OrgSwitcher />
+          <div className="flex items-center gap-4">
+            <OrgSwitcher />
+            {user && (
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 font-mono">{user.email}</span>
+                <button
+                  onClick={() => void handleLogout()}
+                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors font-mono"
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
         </header>
         <main className="flex-1 overflow-y-auto bg-surface">
           <Outlet />
