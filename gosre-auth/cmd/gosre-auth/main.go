@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/microsoft/go-mssqldb"
 	"go.uber.org/zap"
 
 	"github.com/gosre/gosre-auth/internal/config"
@@ -20,6 +22,7 @@ import (
 	authoidc "github.com/gosre/gosre-auth/internal/oidc"
 	"github.com/gosre/gosre-auth/internal/service"
 	"github.com/gosre/gosre-auth/internal/store"
+	"github.com/gosre/gosre-auth/internal/store/sqlstore"
 )
 
 func main() {
@@ -32,7 +35,7 @@ func main() {
 	cfg := config.Load()
 
 	sessions := resolveSessionStore(cfg.RedisURL, logger)
-	svc := service.New(store.NewMemoryStore(), sessions, cfg.JWTSecret)
+	svc := service.New(resolveUserStore(cfg.DatabaseURL, logger), sessions, cfg.JWTSecret)
 
 	var ghProvider *authoidc.GitHubProvider
 	if cfg.GitHubClientID != "" {
@@ -92,6 +95,23 @@ func main() {
 		logger.Error("shutdown error", zap.Error(err))
 	}
 	logger.Info("gosre-auth stopped")
+}
+
+// resolveUserStore opens a SQL user store when DATABASE_URL is set; falls back to in-memory.
+func resolveUserStore(databaseURL string, logger *zap.Logger) store.UserStore {
+	if databaseURL == "" {
+		logger.Warn("DATABASE_URL not set; using in-memory user store")
+		return store.NewMemoryStore()
+	}
+	db, err := sql.Open("sqlserver", databaseURL)
+	if err != nil {
+		logger.Fatal("open database", zap.Error(err))
+	}
+	if err := sqlstore.RunMigrations(db); err != nil {
+		logger.Fatal("run migrations", zap.Error(err))
+	}
+	logger.Info("using sql user store")
+	return sqlstore.NewSQLUserStore(db)
 }
 
 // resolveSessionStore tries to connect to Redis; falls back to in-memory on failure.

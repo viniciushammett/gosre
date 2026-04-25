@@ -10,6 +10,7 @@ type Config struct {
 	Port               string
 	JWTSecret          string
 	RedisURL           string
+	DatabaseURL        string
 	GitHubClientID     string
 	GitHubClientSecret string
 	GitHubRedirectURL  string
@@ -27,6 +28,7 @@ func Load() Config {
 		Port:               viper.GetString("PORT"),
 		JWTSecret:          viper.GetString("JWT_SECRET"),
 		RedisURL:           viper.GetString("GOSRE_REDIS_URL"),
+		DatabaseURL:        viper.GetString("DATABASE_URL"),
 		GitHubClientID:     viper.GetString("GOSRE_GITHUB_CLIENT_ID"),
 		GitHubClientSecret: viper.GetString("GOSRE_GITHUB_CLIENT_SECRET"),
 		GitHubRedirectURL:  viper.GetString("GITHUB_REDIRECT_URL"),
