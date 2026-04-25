@@ -1,0 +1,26 @@
+name: gosre-auth test
+
+"on":
+  pull_request:
+    paths:
+      - 'gosre-auth/**'
+  push:
+    branches: [main]
+    paths:
+      - 'gosre-auth/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.2'
+
+      - name: test
+        working-directory: gosre-auth
+        env:
+          GOWORK: 'off'
+        run: go test -race -cover ./...
