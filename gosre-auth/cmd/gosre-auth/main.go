@@ -17,6 +17,7 @@ import (
 	"github.com/gosre/gosre-auth/internal/config"
 	"github.com/gosre/gosre-auth/internal/handler"
 	"github.com/gosre/gosre-auth/internal/middleware"
+	authoidc "github.com/gosre/gosre-auth/internal/oidc"
 	"github.com/gosre/gosre-auth/internal/service"
 	"github.com/gosre/gosre-auth/internal/store"
 )
@@ -30,7 +31,17 @@ func main() {
 
 	cfg := config.Load()
 	svc := service.New(store.NewMemoryStore(), cfg.JWTSecret)
-	h := handler.New(svc)
+
+	var ghProvider *authoidc.GitHubProvider
+	if cfg.GitHubClientID != "" {
+		ghProvider = authoidc.NewGitHubProvider(
+			cfg.GitHubClientID,
+			cfg.GitHubClientSecret,
+			cfg.GitHubRedirectURL,
+		)
+	}
+
+	h := handler.New(svc, ghProvider)
 
 	router := gin.New()
 	router.Use(gin.Logger())
@@ -44,6 +55,8 @@ func main() {
 	{
 		auth.POST("/register", h.Register)
 		auth.POST("/login", h.Login)
+		auth.GET("/github/login", h.GitHubLogin)
+		auth.GET("/github/callback", h.GitHubCallback)
 
 		protected := auth.Group("/")
 		protected.Use(middleware.JWT(svc))

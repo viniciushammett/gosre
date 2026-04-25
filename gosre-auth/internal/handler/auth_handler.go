@@ -12,18 +12,25 @@ import (
 
 	"github.com/gosre/gosre-auth/internal/domain"
 	"github.com/gosre/gosre-auth/internal/middleware"
+	authoidc "github.com/gosre/gosre-auth/internal/oidc"
 	"github.com/gosre/gosre-auth/internal/service"
 	"github.com/gosre/gosre-auth/internal/store"
 )
 
 // Handler holds the dependencies for the auth HTTP handlers.
 type Handler struct {
-	svc *service.AuthService
+	svc    *service.AuthService
+	github *authoidc.GitHubProvider
+	states *authoidc.StateStore
 }
 
-// New returns a Handler backed by the given AuthService.
-func New(svc *service.AuthService) *Handler {
-	return &Handler{svc: svc}
+// New returns a Handler. gh may be nil if GitHub OAuth is not configured.
+func New(svc *service.AuthService, gh *authoidc.GitHubProvider) *Handler {
+	h := &Handler{svc: svc, github: gh}
+	if gh != nil {
+		h.states = authoidc.NewStateStore()
+	}
+	return h
 }
 
 // RegisterRequest is the body accepted by POST /auth/register.
@@ -110,4 +117,55 @@ func (h *Handler) Me(c *gin.Context) {
 		Email:  claims.Email,
 		Role:   claims.Role,
 	})
+}
+
+// GitHubLogin handles GET /auth/github/login.
+// Redirects the browser to GitHub's OAuth2 authorization page.
+func (h *Handler) GitHubLogin(c *gin.Context) {
+	if h.github == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "GitHub OAuth not configured"})
+		return
+	}
+	state := h.states.Generate()
+	c.Redirect(http.StatusFound, h.github.AuthURL(state))
+}
+
+// GitHubCallback handles GET /auth/github/callback.
+// Validates the CSRF state, exchanges the code, finds or creates the user, returns a JWT.
+func (h *Handler) GitHubCallback(c *gin.Context) {
+	if h.github == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "GitHub OAuth not configured"})
+		return
+	}
+
+	if !h.states.Validate(c.Query("state")) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired state"})
+		return
+	}
+
+	code := c.Query("code")
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing code"})
+		return
+	}
+
+	ghUser, err := h.github.Exchange(c.Request.Context(), code)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "failed to authenticate with GitHub"})
+		return
+	}
+
+	u, err := h.svc.FindOrCreate(c.Request.Context(), ghUser.Email, domain.RoleViewer)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
+
+	token, err := h.svc.IssueToken(u)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, LoginResponse{Token: token})
 }

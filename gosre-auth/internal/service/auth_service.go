@@ -106,6 +106,34 @@ func (a *AuthService) ValidateToken(_ context.Context, tokenString string) (doma
 	}, nil
 }
 
+// FindOrCreate returns the user with the given email, or creates one with the
+// given role if not found. Used by OAuth flows where there is no password.
+func (a *AuthService) FindOrCreate(ctx context.Context, email string, role domain.Role) (domain.User, error) {
+	u, err := a.store.GetByEmail(ctx, email)
+	if err == nil {
+		return u, nil
+	}
+	if !errors.Is(err, store.ErrUserNotFound) {
+		return domain.User{}, fmt.Errorf("lookup user: %w", err)
+	}
+
+	u = domain.User{
+		ID:        uuid.NewString(),
+		Email:     email,
+		Role:      role,
+		CreatedAt: time.Now().UTC(),
+	}
+	if err := a.store.Create(ctx, u); err != nil {
+		return domain.User{}, fmt.Errorf("create oauth user: %w", err)
+	}
+	return u, nil
+}
+
+// IssueToken creates and signs a JWT for the given user.
+func (a *AuthService) IssueToken(u domain.User) (string, error) {
+	return a.sign(u)
+}
+
 // sign builds and returns a signed HS256 JWT for the given user.
 func (a *AuthService) sign(u domain.User) (string, error) {
 	now := time.Now().UTC()
