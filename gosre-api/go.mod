@@ -1,6 +1,6 @@
 module github.com/gosre/gosre-api
 
-go 1.25.4
+go 1.26.2
 
 require (
 	github.com/gin-contrib/cors v1.7.7
@@ -11,7 +11,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.42
 	github.com/microsoft/go-mssqldb v1.0.0
 	github.com/stretchr/testify v1.11.1
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 )
 
 replace github.com/gosre/gosre-sdk => ../gosre-sdk
@@ -53,10 +53,10 @@ require (
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.35.0 // indirect
+	golang.org/x/crypto v0.50.0 // indirect
+	golang.org/x/net v0.52.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
