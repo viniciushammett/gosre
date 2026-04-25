@@ -46,9 +46,21 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// LoginResponse is returned on a successful login.
+// LoginResponse is returned on a successful login or token refresh.
 type LoginResponse struct {
-	Token string `json:"token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"` // seconds until access token expiry
+}
+
+// RefreshRequest is the body accepted by POST /auth/refresh.
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+// LogoutRequest is the body accepted by POST /auth/logout.
+type LogoutRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
 // MeResponse is returned by GET /auth/me.
@@ -92,7 +104,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.svc.Login(c.Request.Context(), req.Email, req.Password)
+	accessToken, refreshToken, err := h.svc.Login(c.Request.Context(), req.Email, req.Password)
 	if errors.Is(err, service.ErrInvalidCredentials) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
@@ -102,7 +114,54 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, LoginResponse{Token: token})
+	c.JSON(http.StatusOK, LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresIn:    900,
+	})
+}
+
+// Refresh handles POST /auth/refresh.
+// Validates the refresh token, rotates it, and returns a new token pair.
+func (h *Handler) Refresh(c *gin.Context) {
+	var req RefreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	accessToken, refreshToken, err := h.svc.Refresh(c.Request.Context(), req.RefreshToken)
+	if errors.Is(err, service.ErrInvalidRefreshToken) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired refresh token"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresIn:    900,
+	})
+}
+
+// Logout handles POST /auth/logout.
+// Invalidates the refresh token, ending the session.
+func (h *Handler) Logout(c *gin.Context) {
+	var req LogoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.svc.Logout(c.Request.Context(), req.RefreshToken); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // Me handles GET /auth/me (requires JWT middleware).
@@ -131,7 +190,7 @@ func (h *Handler) GitHubLogin(c *gin.Context) {
 }
 
 // GitHubCallback handles GET /auth/github/callback.
-// Validates the CSRF state, exchanges the code, finds or creates the user, returns a JWT.
+// Validates the CSRF state, exchanges the code, finds or creates the user, returns a token pair.
 func (h *Handler) GitHubCallback(c *gin.Context) {
 	if h.github == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "GitHub OAuth not configured"})
@@ -161,11 +220,15 @@ func (h *Handler) GitHubCallback(c *gin.Context) {
 		return
 	}
 
-	token, err := h.svc.IssueToken(u)
+	accessToken, refreshToken, err := h.svc.IssueToken(c.Request.Context(), u)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		return
 	}
 
-	c.JSON(http.StatusOK, LoginResponse{Token: token})
+	c.JSON(http.StatusOK, LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresIn:    900,
+	})
 }

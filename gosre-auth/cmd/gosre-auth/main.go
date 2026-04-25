@@ -30,7 +30,9 @@ func main() {
 	defer func() { _ = logger.Sync() }()
 
 	cfg := config.Load()
-	svc := service.New(store.NewMemoryStore(), cfg.JWTSecret)
+
+	sessions := resolveSessionStore(cfg.RedisURL, logger)
+	svc := service.New(store.NewMemoryStore(), sessions, cfg.JWTSecret)
 
 	var ghProvider *authoidc.GitHubProvider
 	if cfg.GitHubClientID != "" {
@@ -55,6 +57,8 @@ func main() {
 	{
 		auth.POST("/register", h.Register)
 		auth.POST("/login", h.Login)
+		auth.POST("/refresh", h.Refresh)
+		auth.POST("/logout", h.Logout)
 		auth.GET("/github/login", h.GitHubLogin)
 		auth.GET("/github/callback", h.GitHubCallback)
 
@@ -88,4 +92,24 @@ func main() {
 		logger.Error("shutdown error", zap.Error(err))
 	}
 	logger.Info("gosre-auth stopped")
+}
+
+// resolveSessionStore tries to connect to Redis; falls back to in-memory on failure.
+func resolveSessionStore(redisURL string, logger *zap.Logger) store.SessionStore {
+	rs, err := store.NewRedisSessionStore(redisURL)
+	if err != nil {
+		logger.Warn("redis url invalid; using in-memory session store", zap.Error(err))
+		return store.NewMemorySessionStore()
+	}
+
+	pingCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	if err := rs.Ping(pingCtx); err != nil {
+		logger.Warn("redis unavailable; using in-memory session store", zap.Error(err))
+		return store.NewMemorySessionStore()
+	}
+
+	logger.Info("using redis session store", zap.String("url", redisURL))
+	return rs
 }

@@ -18,7 +18,7 @@ import (
 const testSecret = "test-secret-key"
 
 func newSvc() *service.AuthService {
-	return service.New(store.NewMemoryStore(), testSecret)
+	return service.New(store.NewMemoryStore(), store.NewMemorySessionStore(), testSecret)
 }
 
 func TestRegister_Success(t *testing.T) {
@@ -52,15 +52,18 @@ func TestLogin_Success(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	token, err := svc.Login(ctx, "bob@example.com", "s3cret!")
+	accessToken, refreshToken, err := svc.Login(ctx, "bob@example.com", "s3cret!")
 	if err != nil {
 		t.Fatalf("Login: unexpected error: %v", err)
 	}
-	if token == "" {
-		t.Error("Login: expected non-empty token")
+	if accessToken == "" {
+		t.Error("Login: expected non-empty access token")
+	}
+	if refreshToken == "" {
+		t.Error("Login: expected non-empty refresh token")
 	}
 
-	claims, err := svc.ValidateToken(ctx, token)
+	claims, err := svc.ValidateToken(ctx, accessToken)
 	if err != nil {
 		t.Fatalf("ValidateToken: %v", err)
 	}
@@ -81,7 +84,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	_, err = svc.Login(ctx, "carol@example.com", "wrong-password")
+	_, _, err = svc.Login(ctx, "carol@example.com", "wrong-password")
 	if err == nil {
 		t.Fatal("Login: expected error for wrong password, got nil")
 	}
@@ -106,5 +109,98 @@ func TestValidateToken_Expired(t *testing.T) {
 	_, err = svc.ValidateToken(context.Background(), tokenStr)
 	if err == nil {
 		t.Fatal("ValidateToken: expected error for expired token, got nil")
+	}
+}
+
+func TestRefresh_Success(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+
+	_, err := svc.Register(ctx, "dave@example.com", "password123", domain.RoleViewer)
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	_, refreshToken, err := svc.Login(ctx, "dave@example.com", "password123")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+
+	newAccess, newRefresh, err := svc.Refresh(ctx, refreshToken)
+	if err != nil {
+		t.Fatalf("Refresh: unexpected error: %v", err)
+	}
+	if newAccess == "" {
+		t.Error("Refresh: expected non-empty access token")
+	}
+	if newRefresh == "" {
+		t.Error("Refresh: expected non-empty refresh token")
+	}
+
+	_, err = svc.ValidateToken(ctx, newAccess)
+	if err != nil {
+		t.Fatalf("ValidateToken after Refresh: %v", err)
+	}
+}
+
+func TestRefresh_InvalidToken(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+
+	_, _, err := svc.Refresh(ctx, "bogus-token-that-does-not-exist")
+	if err == nil {
+		t.Fatal("Refresh: expected error for invalid token, got nil")
+	}
+}
+
+func TestRefresh_Rotation(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+
+	_, err := svc.Register(ctx, "eve@example.com", "password123", domain.RoleViewer)
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	_, oldRefresh, err := svc.Login(ctx, "eve@example.com", "password123")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+
+	// first Refresh succeeds and rotates the token
+	_, _, err = svc.Refresh(ctx, oldRefresh)
+	if err != nil {
+		t.Fatalf("Refresh: %v", err)
+	}
+
+	// second Refresh with the same (now consumed) token must fail
+	_, _, err = svc.Refresh(ctx, oldRefresh)
+	if err == nil {
+		t.Fatal("Refresh: expected error when reusing a consumed refresh token, got nil")
+	}
+}
+
+func TestLogout_Success(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+
+	_, err := svc.Register(ctx, "frank@example.com", "password123", domain.RoleViewer)
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	_, refreshToken, err := svc.Login(ctx, "frank@example.com", "password123")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+
+	if err := svc.Logout(ctx, refreshToken); err != nil {
+		t.Fatalf("Logout: unexpected error: %v", err)
+	}
+
+	// after logout, refresh must be rejected
+	_, _, err = svc.Refresh(ctx, refreshToken)
+	if err == nil {
+		t.Fatal("Refresh after Logout: expected error, got nil")
 	}
 }

@@ -9,6 +9,7 @@ import "github.com/spf13/viper"
 type Config struct {
 	Port               string
 	JWTSecret          string
+	RedisURL           string
 	GitHubClientID     string
 	GitHubClientSecret string
 	GitHubRedirectURL  string
@@ -18,12 +19,14 @@ type Config struct {
 func Load() Config {
 	viper.SetDefault("PORT", "8081")
 	viper.SetDefault("JWT_SECRET", "dev-secret-change-in-production")
+	viper.SetDefault("GOSRE_REDIS_URL", "redis://localhost:6379")
 	viper.SetDefault("GITHUB_REDIRECT_URL", "http://localhost:8081/auth/github/callback")
 	viper.AutomaticEnv()
 
 	return Config{
 		Port:               viper.GetString("PORT"),
 		JWTSecret:          viper.GetString("JWT_SECRET"),
+		RedisURL:           viper.GetString("GOSRE_REDIS_URL"),
 		GitHubClientID:     viper.GetString("GOSRE_GITHUB_CLIENT_ID"),
 		GitHubClientSecret: viper.GetString("GOSRE_GITHUB_CLIENT_SECRET"),
 		GitHubRedirectURL:  viper.GetString("GITHUB_REDIRECT_URL"),
