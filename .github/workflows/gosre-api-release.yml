@@ -1,6 +1,6 @@
 name: gosre-api release
 
-on:
+"on":
   push:
     tags:
       - 'gosre-api/v*'
