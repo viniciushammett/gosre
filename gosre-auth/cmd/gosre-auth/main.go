@@ -15,22 +15,11 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/gosre/gosre-auth/internal/config"
-	"github.com/gosre/gosre-auth/internal/domain"
+	"github.com/gosre/gosre-auth/internal/handler"
 	"github.com/gosre/gosre-auth/internal/middleware"
 	"github.com/gosre/gosre-auth/internal/service"
 	"github.com/gosre/gosre-auth/internal/store"
 )
-
-type registerRequest struct {
-	Email    string      `json:"email"    binding:"required"`
-	Password string      `json:"password" binding:"required"`
-	Role     domain.Role `json:"role"     binding:"required"`
-}
-
-type loginRequest struct {
-	Email    string `json:"email"    binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
 
 func main() {
 	logger, err := zap.NewProduction()
@@ -41,6 +30,7 @@ func main() {
 
 	cfg := config.Load()
 	svc := service.New(store.NewMemoryStore(), cfg.JWTSecret)
+	h := handler.New(svc)
 
 	router := gin.New()
 	router.Use(gin.Logger())
@@ -52,57 +42,12 @@ func main() {
 
 	auth := router.Group("/auth")
 	{
-		auth.POST("/register", func(c *gin.Context) {
-			var req registerRequest
-			if err := c.ShouldBindJSON(&req); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
+		auth.POST("/register", h.Register)
+		auth.POST("/login", h.Login)
 
-			u, err := svc.Register(c.Request.Context(), req.Email, req.Password, req.Role)
-			if err != nil {
-				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-				return
-			}
-
-			c.JSON(http.StatusCreated, gin.H{
-				"id":         u.ID,
-				"email":      u.Email,
-				"role":       u.Role,
-				"created_at": u.CreatedAt,
-			})
-		})
-
-		auth.POST("/login", func(c *gin.Context) {
-			var req loginRequest
-			if err := c.ShouldBindJSON(&req); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
-
-			token, err := svc.Login(c.Request.Context(), req.Email, req.Password)
-			if err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
-				return
-			}
-
-			c.JSON(http.StatusOK, gin.H{"token": token})
-		})
-
-		me := auth.Group("/")
-		me.Use(middleware.JWT(svc))
-		me.GET("me", func(c *gin.Context) {
-			claims, ok := middleware.GetClaims(c)
-			if !ok {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "claims not found"})
-				return
-			}
-			c.JSON(http.StatusOK, gin.H{
-				"user_id": claims.UserID,
-				"email":   claims.Email,
-				"role":    claims.Role,
-			})
-		})
+		protected := auth.Group("/")
+		protected.Use(middleware.JWT(svc))
+		protected.GET("me", h.Me)
 	}
 
 	srv := &http.Server{
