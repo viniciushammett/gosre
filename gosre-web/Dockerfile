@@ -5,6 +5,7 @@ RUN npm ci
 COPY . .
 ARG VITE_API_URL=""
 ARG VITE_API_KEY=""
+ARG VITE_AUTH_URL=""
 RUN npm run build
 
 FROM nginx:alpine

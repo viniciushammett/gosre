@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRole } from "../hooks/useRole";
 import { listChecks, runCheck } from "../api/checks";
 import { listTargets } from "../api/targets";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -24,6 +25,7 @@ function fmtInterval(ns?: number) {
 
 export default function Checks() {
   const qc = useQueryClient();
+  const { hasMinRole } = useRole();
   const [runResults, setRunResults] = useState<Record<string, Result>>({});
 
   const targets = useQuery({ queryKey: ["targets"], queryFn: listTargets });
@@ -106,13 +108,13 @@ export default function Checks() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
+                      {hasMinRole('operator') && <button
                         onClick={() => run.mutate(c.id!)}
                         disabled={isRunning}
                         className="text-xs px-2 py-1 rounded border border-surface-border text-gray-400 hover:text-white hover:border-brand transition-colors disabled:opacity-40"
                       >
                         {isRunning ? "running…" : "run"}
-                      </button>
+                      </button>}
                     </td>
                   </tr>
                 );

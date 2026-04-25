@@ -1,0 +1,1 @@
+ALTER TABLE results ADD COLUMN target_name TEXT NOT NULL DEFAULT '';

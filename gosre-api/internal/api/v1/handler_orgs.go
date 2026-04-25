@@ -56,9 +56,9 @@ func (h *OrgHandler) Create(c *gin.Context) {
 	OK(c, http.StatusCreated, o)
 }
 
-// Get handles GET /api/v1/organizations/:id.
+// Get handles GET /api/v1/organizations/:org_id.
 func (h *OrgHandler) Get(c *gin.Context) {
-	o, err := h.svc.Get(c.Request.Context(), c.Param("id"))
+	o, err := h.svc.Get(c.Request.Context(), c.Param("org_id"))
 	if errors.Is(err, service.ErrOrgNotFound) {
 		Fail(c, http.StatusNotFound, "org_not_found", err.Error())
 		return
@@ -70,9 +70,9 @@ func (h *OrgHandler) Get(c *gin.Context) {
 	OK(c, http.StatusOK, o)
 }
 
-// Delete handles DELETE /api/v1/organizations/:id.
+// Delete handles DELETE /api/v1/organizations/:org_id.
 func (h *OrgHandler) Delete(c *gin.Context) {
-	err := h.svc.Delete(c.Request.Context(), c.Param("id"))
+	err := h.svc.Delete(c.Request.Context(), c.Param("org_id"))
 	if errors.Is(err, service.ErrOrgNotFound) {
 		Fail(c, http.StatusNotFound, "org_not_found", err.Error())
 		return

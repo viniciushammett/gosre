@@ -102,6 +102,7 @@ func (svc *CheckService) Run(ctx context.Context, id string) (domain.Result, err
 	}
 
 	r := checker.Execute(ctx, t, cfg)
+	r.TargetName = t.Name
 
 	saved, err := svc.results.Save(ctx, r)
 	if err != nil {

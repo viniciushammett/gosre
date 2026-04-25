@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRole } from "../hooks/useRole";
 import { listTargets, deleteTarget, createTarget, updateTarget } from "../api/targets";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
@@ -46,6 +47,7 @@ function TagChips({ tags, onToggle }: { tags: string[]; onToggle: (tag: string) 
 
 export default function Targets() {
   const qc = useQueryClient();
+  const { hasMinRole } = useRole();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -136,7 +138,7 @@ export default function Targets() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-lg font-semibold text-white">Targets</h1>
-        {!showForm && (
+        {!showForm && hasMinRole('operator') && (
           <button
             onClick={() => setShowForm(true)}
             className="text-xs px-3 py-1.5 rounded border border-brand text-brand hover:bg-brand hover:text-black transition-colors"
@@ -312,13 +314,13 @@ export default function Targets() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-3">
-                        <button
+                        {hasMinRole('operator') && <button
                           onClick={() => startEdit(t)}
                           className="text-xs text-gray-500 hover:text-gray-200 transition-colors"
                         >
                           edit
-                        </button>
-                        <button
+                        </button>}
+                        {hasMinRole('admin') && <button
                           onClick={() => {
                             if (confirm(`Delete target "${t.name}"?`)) {
                               del.mutate(t.id!);
@@ -328,7 +330,7 @@ export default function Targets() {
                           className="text-xs text-gray-500 hover:text-status-fail transition-colors disabled:opacity-40"
                         >
                           delete
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>

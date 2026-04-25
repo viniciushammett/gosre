@@ -1,0 +1,2 @@
+-- SQLite does not support DROP COLUMN in versions prior to 3.35.0.
+-- target_name column added in 000013 up migration; no automated rollback.

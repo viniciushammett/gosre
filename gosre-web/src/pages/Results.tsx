@@ -104,7 +104,7 @@ export default function Results() {
                   <td className="px-4 py-3">
                     <StatusBadge status={(r.status ?? "unknown") as CheckStatus} />
                   </td>
-                  <td className="px-4 py-3 text-gray-300 text-xs">{resolveId(targetMap, r.target_id)}</td>
+                  <td className="px-4 py-3 text-gray-300 text-xs">{r.target_name || resolveId(targetMap, r.target_id)}</td>
                   <td className="px-4 py-3 text-gray-300 text-xs">{resolveId(checkMap, r.check_id)}</td>
                   <td className="px-4 py-3 text-gray-400 font-mono text-xs">{fmtDuration(r.duration_ms)}</td>
                   <td className="px-4 py-3 text-gray-400 text-xs">{fmtTime(r.timestamp)}</td>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRole } from "../../hooks/useRole";
 import {
   listOrganizations,
   listTeams,
@@ -17,6 +18,7 @@ const EMPTY_FORM = { name: "", slug: "" };
 export default function TeamsSettings() {
   const { orgId } = useParams<{ orgId: string }>();
   const qc = useQueryClient();
+  const { hasMinRole } = useRole();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
 
@@ -70,7 +72,7 @@ export default function TeamsSettings() {
         </div>
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-semibold text-white">Teams</h1>
-          {!showForm && (
+          {!showForm && hasMinRole('admin') && (
             <button
               onClick={() => setShowForm(true)}
               className="text-xs px-3 py-1.5 rounded border border-brand text-brand hover:bg-brand hover:text-black transition-colors"
@@ -150,7 +152,7 @@ export default function TeamsSettings() {
                     {new Date(team.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
+                    {hasMinRole('admin') && <button
                       onClick={() => {
                         if (confirm(`Delete team "${team.name}"?`)) {
                           del.mutate(team.id);
@@ -160,7 +162,7 @@ export default function TeamsSettings() {
                       className="text-xs text-gray-500 hover:text-status-fail transition-colors disabled:opacity-40"
                     >
                       delete
-                    </button>
+                    </button>}
                   </td>
                 </tr>
               ))}

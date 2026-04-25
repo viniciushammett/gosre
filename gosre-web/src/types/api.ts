@@ -214,6 +214,8 @@ export interface components {
             metadata?: {
                 [key: string]: string;
             };
+            /** @description Snapshot of the target name at the time the check was executed. */
+            target_name?: string;
         };
         /** @enum {string} */
         IncidentState: "open" | "acknowledged" | "resolved";

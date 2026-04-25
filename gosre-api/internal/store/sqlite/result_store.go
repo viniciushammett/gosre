@@ -33,12 +33,12 @@ func (s *ResultStore) Save(ctx context.Context, r domain.Result) error {
 
 	_, err = s.db.ExecContext(ctx,
 		`INSERT OR REPLACE INTO results
-		 (id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata, project_id)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 (id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata, project_id, target_name)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		r.ID, r.CheckID, r.TargetID, r.AgentID,
 		string(r.Status), r.Duration.Nanoseconds(), r.Error,
 		r.Timestamp.UTC().Format(time.RFC3339Nano),
-		string(meta), r.ProjectID,
+		string(meta), r.ProjectID, r.TargetName,
 	)
 	if err != nil {
 		return fmt.Errorf("sqlite: save result %q: %w", r.ID, err)
@@ -49,7 +49,7 @@ func (s *ResultStore) Save(ctx context.Context, r domain.Result) error {
 // Get retrieves a Result by ID. Returns sql.ErrNoRows if not present.
 func (s *ResultStore) Get(ctx context.Context, id string) (domain.Result, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata, project_id
+		`SELECT id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata, project_id, target_name
 		 FROM results WHERE id = ?`, id)
 	return scanResult(row)
 }
@@ -57,7 +57,7 @@ func (s *ResultStore) Get(ctx context.Context, id string) (domain.Result, error)
 // List returns all Results ordered by timestamp DESC.
 func (s *ResultStore) List(ctx context.Context) ([]domain.Result, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata, project_id
+		`SELECT id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata, project_id, target_name
 		 FROM results ORDER BY timestamp DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("sqlite: list results: %w", err)
@@ -90,7 +90,7 @@ func (s *ResultStore) DeleteByTargetID(ctx context.Context, targetID string) err
 // ListByTarget returns all Results for the given targetID ordered by timestamp DESC.
 func (s *ResultStore) ListByTarget(ctx context.Context, targetID string) ([]domain.Result, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata, project_id
+		`SELECT id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata, project_id, target_name
 		 FROM results WHERE target_id = ? ORDER BY timestamp DESC`, targetID)
 	if err != nil {
 		return nil, fmt.Errorf("sqlite: list results for target %q: %w", targetID, err)
@@ -121,7 +121,7 @@ func scanResult(s scanner) (domain.Result, error) {
 	)
 
 	err := s.Scan(&r.ID, &r.CheckID, &r.TargetID, &r.AgentID,
-		&status, &durationNs, &r.Error, &ts, &metaJSON, &r.ProjectID)
+		&status, &durationNs, &r.Error, &ts, &metaJSON, &r.ProjectID, &r.TargetName)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Result{}, sql.ErrNoRows
 	}

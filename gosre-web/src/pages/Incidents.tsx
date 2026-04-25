@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRole } from "../hooks/useRole";
 import { listIncidents, patchIncident } from "../api/incidents";
 import { listTargets } from "../api/targets";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -23,6 +24,7 @@ function fmt(iso?: string) {
 
 export default function Incidents() {
   const qc = useQueryClient();
+  const { hasMinRole } = useRole();
   const [filter, setFilter] = useState<IncidentState | undefined>(undefined);
   const [selected, setSelected] = useState<Incident | null>(null);
 
@@ -101,7 +103,7 @@ export default function Incidents() {
                   <td className="px-4 py-3 text-gray-400 text-xs">{fmt(inc.last_seen)}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      {inc.state === "open" && (
+                      {inc.state === "open" && hasMinRole('operator') && (
                         <button
                           onClick={() => patch.mutate({ id: inc.id!, state: "acknowledged" })}
                           disabled={patch.isPending}
@@ -110,7 +112,7 @@ export default function Incidents() {
                           ack
                         </button>
                       )}
-                      {inc.state !== "resolved" && (
+                      {inc.state !== "resolved" && hasMinRole('operator') && (
                         <button
                           onClick={() => patch.mutate({ id: inc.id!, state: "resolved" })}
                           disabled={patch.isPending}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useRole } from "../../hooks/useRole";
 import {
   listOrganizations,
   createOrganization,
@@ -16,6 +17,7 @@ const EMPTY_FORM = { name: "", slug: "" };
 export default function OrganizationSettings() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { hasMinRole } = useRole();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
 
@@ -51,7 +53,7 @@ export default function OrganizationSettings() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-lg font-semibold text-white">Organizations</h1>
-        {!showForm && (
+        {!showForm && hasMinRole('admin') && (
           <button
             onClick={() => setShowForm(true)}
             className="text-xs px-3 py-1.5 rounded border border-brand text-brand hover:bg-brand hover:text-black transition-colors"
@@ -137,7 +139,7 @@ export default function OrganizationSettings() {
                       >
                         teams
                       </button>
-                      <button
+                      {hasMinRole('owner') && <button
                         onClick={() => {
                           if (confirm(`Delete organization "${org.name}"?`)) {
                             del.mutate(org.id);
@@ -147,7 +149,7 @@ export default function OrganizationSettings() {
                         className="text-xs text-gray-500 hover:text-status-fail transition-colors disabled:opacity-40"
                       >
                         delete
-                      </button>
+                      </button>}
                     </div>
                   </td>
                 </tr>

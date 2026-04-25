@@ -72,6 +72,9 @@ func main() {
 		incidentSvc = service.NewIncidentService(az.IncidentStore(), az.ResultStore())
 		checkSvc = service.NewCheckService(az.CheckStore(), az.TargetStore(), resultSvc, incidentSvc, checkers)
 		agentH = v1.NewAgentHandler(az.AgentStore(), az.CheckStore())
+		orgSvc = service.NewOrgService(az.OrgStore())
+		teamSvc = service.NewTeamService(az.TeamStore())
+		projectSvc = service.NewProjectService(az.ProjectStore())
 	} else {
 		logger.Info("using sqlite store", zap.String("path", "gosre.db"))
 		lite, err := sqlite.New("gosre.db")
@@ -83,6 +86,9 @@ func main() {
 		incidentSvc = service.NewIncidentService(lite.IncidentStore(), lite.ResultStore())
 		checkSvc = service.NewCheckService(lite.CheckStore(), lite, resultSvc, incidentSvc, checkers)
 		agentH = v1.NewAgentHandler(lite.AgentStore(), lite.CheckStore())
+		orgSvc = service.NewOrgService(lite.OrgStore())
+		teamSvc = service.NewTeamService(lite.TeamStore())
+		projectSvc = service.NewProjectService(lite.ProjectStore())
 	}
 
 	targetH := v1.NewTargetHandler(targetSvc)
@@ -120,7 +126,7 @@ func main() {
 	api.GET("/incidents", incidentH.ListIncidents)
 	api.GET("/agents", agentH.List)
 	api.GET("/organizations", orgH.List)
-	api.GET("/organizations/:id", orgH.Get)
+	api.GET("/organizations/:org_id", orgH.Get)
 	api.GET("/organizations/:org_id/teams", teamH.ListByOrg)
 	api.GET("/organizations/:org_id/teams/:id", teamH.Get)
 	api.GET("/organizations/:org_id/projects", projectH.ListByOrg)
@@ -143,7 +149,7 @@ func main() {
 	adm := api.Group("/")
 	adm.Use(middleware.RequireRole("admin", "owner"))
 	adm.DELETE("/targets/:id", targetH.DeleteTarget)
-	adm.DELETE("/organizations/:id", orgH.Delete)
+	adm.DELETE("/organizations/:org_id", orgH.Delete)
 	adm.DELETE("/organizations/:org_id/teams/:id", teamH.Delete)
 	adm.DELETE("/organizations/:org_id/projects/:id", projectH.Delete)
 

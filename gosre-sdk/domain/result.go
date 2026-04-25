@@ -26,6 +26,7 @@ type Result struct {
 	Duration  time.Duration     `json:"duration_ms"`
 	Error     string            `json:"error,omitempty"`
 	Timestamp time.Time         `json:"timestamp"`
-	Metadata  map[string]string `json:"metadata,omitempty"`
-	ProjectID string            `json:"project_id,omitempty"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
+	ProjectID  string            `json:"project_id,omitempty"`
+	TargetName string            `json:"target_name,omitempty"`
 }

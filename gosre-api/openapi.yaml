@@ -371,6 +371,9 @@ components:
           type: object
           additionalProperties:
             type: string
+        target_name:
+          type: string
+          description: Snapshot of the target name at the time the check was executed.
 
     IncidentState:
       type: string

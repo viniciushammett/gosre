@@ -33,19 +33,20 @@ func (s *ResultStore) Save(ctx context.Context, r domain.Result) error {
 
 	_, err = s.db.ExecContext(ctx, `
 		MERGE results WITH (HOLDLOCK) AS T
-		USING (VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10))
-			AS S(id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata, project_id)
+		USING (VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11))
+			AS S(id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata, project_id, target_name)
 		ON T.id = S.id
 		WHEN MATCHED THEN
 			UPDATE SET T.check_id=S.check_id, T.target_id=S.target_id, T.agent_id=S.agent_id,
 			           T.status=S.status, T.duration_ns=S.duration_ns, T.error=S.error,
-			           T.timestamp=S.timestamp, T.metadata=S.metadata, T.project_id=S.project_id
+			           T.timestamp=S.timestamp, T.metadata=S.metadata, T.project_id=S.project_id,
+			           T.target_name=S.target_name
 		WHEN NOT MATCHED THEN
-			INSERT (id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata, project_id)
-			VALUES (S.id, S.check_id, S.target_id, S.agent_id, S.status, S.duration_ns, S.error, S.timestamp, S.metadata, S.project_id);`,
+			INSERT (id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata, project_id, target_name)
+			VALUES (S.id, S.check_id, S.target_id, S.agent_id, S.status, S.duration_ns, S.error, S.timestamp, S.metadata, S.project_id, S.target_name);`,
 		r.ID, r.CheckID, r.TargetID, r.AgentID,
 		string(r.Status), r.Duration.Nanoseconds(), r.Error,
-		r.Timestamp.UTC(), string(meta), r.ProjectID,
+		r.Timestamp.UTC(), string(meta), r.ProjectID, r.TargetName,
 	)
 	if err != nil {
 		return fmt.Errorf("azuresql: save result %q: %w", r.ID, err)
@@ -56,7 +57,7 @@ func (s *ResultStore) Save(ctx context.Context, r domain.Result) error {
 // Get retrieves a Result by ID. Returns sql.ErrNoRows if not present.
 func (s *ResultStore) Get(ctx context.Context, id string) (domain.Result, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata, project_id
+		`SELECT id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata, project_id, target_name
 		 FROM results WHERE id = @p1`, id)
 	return scanResult(row)
 }
@@ -64,7 +65,7 @@ func (s *ResultStore) Get(ctx context.Context, id string) (domain.Result, error)
 // List returns all Results ordered by timestamp DESC.
 func (s *ResultStore) List(ctx context.Context) ([]domain.Result, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata, project_id
+		`SELECT id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata, project_id, target_name
 		 FROM results ORDER BY timestamp DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("azuresql: list results: %w", err)
@@ -88,7 +89,7 @@ func (s *ResultStore) List(ctx context.Context) ([]domain.Result, error) {
 // ListByTarget returns all Results for the given targetID ordered by timestamp DESC.
 func (s *ResultStore) ListByTarget(ctx context.Context, targetID string) ([]domain.Result, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata, project_id
+		`SELECT id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata, project_id, target_name
 		 FROM results WHERE target_id = @p1 ORDER BY timestamp DESC`, targetID)
 	if err != nil {
 		return nil, fmt.Errorf("azuresql: list results for target %q: %w", targetID, err)
@@ -126,7 +127,7 @@ func scanResult(s scanner) (domain.Result, error) {
 		metaJSON   string
 	)
 	err := s.Scan(&r.ID, &r.CheckID, &r.TargetID, &r.AgentID,
-		&status, &durationNs, &r.Error, &r.Timestamp, &metaJSON, &r.ProjectID)
+		&status, &durationNs, &r.Error, &r.Timestamp, &metaJSON, &r.ProjectID, &r.TargetName)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Result{}, sql.ErrNoRows
 	}

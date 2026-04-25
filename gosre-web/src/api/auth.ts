@@ -6,7 +6,7 @@ const REFRESH_KEY = "gosre_refresh_token";
 export interface AuthUser {
   user_id: string;
   email: string;
-  role: string;
+  role: 'viewer' | 'operator' | 'admin' | 'owner';
 }
 
 interface TokenPair {
