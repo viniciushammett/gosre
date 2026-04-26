@@ -2,7 +2,7 @@
 # docker build -f gosre-exporter/Dockerfile -t gosre-exporter:local .
 
 # Stage 1: build
-FROM golang:1.25-bookworm AS builder
+FROM golang:1.26-bookworm AS builder
 
 WORKDIR /src
 

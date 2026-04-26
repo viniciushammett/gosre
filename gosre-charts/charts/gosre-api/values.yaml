@@ -17,6 +17,7 @@ env:
   logLevel: "info"
 
 apiKey: ""
+jwtSecret: ""
 
 persistence:
   enabled: true

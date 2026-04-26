@@ -2,7 +2,7 @@
 # docker build -f gosre-agent/Dockerfile -t gosre-agent:local .
 
 # Stage 1: build
-FROM golang:1.25-bookworm AS builder
+FROM golang:1.26-bookworm AS builder
 
 WORKDIR /src
 

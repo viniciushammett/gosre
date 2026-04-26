@@ -43,6 +43,16 @@ spec:
                 secretKeyRef:
                   name: {{ include "gosre-api.fullname" . }}
                   key: api-key
+            - name: GOSRE_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gosre-api.fullname" . }}
+                  key: jwt-secret
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gosre-api.fullname" . }}
+                  key: database-url
           volumeMounts:
             - name: data
               mountPath: /data
