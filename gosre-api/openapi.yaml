@@ -274,6 +274,84 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /agents:
+    get:
+      summary: List registered agents
+      operationId: listAgents
+      tags: [agents]
+      security:
+        - apiKey: []
+      responses:
+        "200":
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentListResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /agents/register:
+    post:
+      summary: Register an agent
+      operationId: registerAgent
+      tags: [agents]
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterAgentRequest"
+      responses:
+        "201":
+          description: Agent registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /agents/{id}/assignments:
+    parameters:
+      - $ref: "#/components/parameters/id"
+
+    get:
+      summary: Get check assignments for an agent
+      operationId: getAgentAssignments
+      tags: [agents]
+      security:
+        - apiKey: []
+      responses:
+        "200":
+          description: List of check assignments for the agent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentListResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /agents/{id}/heartbeat:
+    parameters:
+      - $ref: "#/components/parameters/id"
+
+    post:
+      summary: Send agent heartbeat
+      operationId: agentHeartbeat
+      tags: [agents]
+      security:
+        - apiKey: []
+      responses:
+        "204":
+          description: Heartbeat acknowledged
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     apiKey:
@@ -478,6 +556,66 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Incident"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    RegisterAgentRequest:
+      type: object
+      required: [hostname, version]
+      properties:
+        hostname:
+          type: string
+        version:
+          type: string
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+        hostname:
+          type: string
+        version:
+          type: string
+        last_seen:
+          type: string
+          format: date-time
+
+    AgentResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Agent"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    AgentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Agent"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    Assignment:
+      type: object
+      properties:
+        check_id:
+          type: string
+        target_id:
+          type: string
+        type:
+          $ref: "#/components/schemas/CheckType"
+
+    AssignmentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Assignment"
         error:
           $ref: "#/components/schemas/Error"
 
