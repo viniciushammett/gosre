@@ -15,10 +15,10 @@ const (
 
 // Target represents something to monitor: a URL, TCP endpoint, DNS name, or TLS host.
 type Target struct {
-	ID       string            `json:"id"`
-	Name     string            `json:"name"`
-	Type     TargetType        `json:"type"`
-	Address  string            `json:"address"`
+	ID        string            `json:"id"`
+	Name      string            `json:"name"`
+	Type      TargetType        `json:"type"`
+	Address   string            `json:"address"`
 	Tags      []string          `json:"tags,omitempty"`
 	Metadata  map[string]string `json:"metadata,omitempty"`
 	ProjectID string            `json:"project_id,omitempty"`

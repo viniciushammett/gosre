@@ -20,11 +20,11 @@ const (
 
 // CheckConfig defines a validation to run against a Target.
 type CheckConfig struct {
-	ID       string            `json:"id"`
-	Type     CheckType         `json:"type"`
-	TargetID string            `json:"target_id"`
-	Interval time.Duration     `json:"interval"`
-	Timeout  time.Duration     `json:"timeout"`
+	ID        string            `json:"id"`
+	Type      CheckType         `json:"type"`
+	TargetID  string            `json:"target_id"`
+	Interval  time.Duration     `json:"interval"`
+	Timeout   time.Duration     `json:"timeout"`
 	Params    map[string]string `json:"params,omitempty"`
 	ProjectID string            `json:"project_id,omitempty"`
 }
