@@ -12,12 +12,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/nats-io/nats.go"
+	natsjets "github.com/nats-io/nats.go/jetstream"
 	"go.uber.org/zap"
 
 	"github.com/gosre/gosre-sdk/domain"
+	gosrejs "github.com/viniciushammett/gosre/gosre-events/jetstream"
 
 	v1 "github.com/gosre/gosre-api/internal/api/v1"
 	"github.com/gosre/gosre-api/internal/check"
+	"github.com/gosre/gosre-api/internal/consumer"
 	"github.com/gosre/gosre-api/internal/middleware"
 	"github.com/gosre/gosre-api/internal/service"
 	"github.com/gosre/gosre-api/internal/store/azuresql"
@@ -60,6 +64,31 @@ func main() {
 		projectSvc  *service.ProjectService
 	)
 
+	var (
+		pub *gosrejs.Publisher
+		js  natsjets.JetStream
+	)
+	if natsURL := os.Getenv("NATS_URL"); natsURL != "" {
+		nc, err := nats.Connect(natsURL)
+		if err != nil {
+			logger.Fatal("connect nats", zap.Error(err))
+		}
+		defer func() { _ = nc.Drain() }()
+		js, err = natsjets.New(nc)
+		if err != nil {
+			logger.Fatal("jetstream client", zap.Error(err))
+		}
+		initCtx, initCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer initCancel()
+		if err := gosrejs.EnsureStream(initCtx, js); err != nil {
+			logger.Fatal("ensure nats stream", zap.Error(err))
+		}
+		pub = gosrejs.NewPublisher(js)
+		logger.Info("nats connected", zap.String("url", natsURL))
+	} else {
+		logger.Warn("NATS_URL not set; event publishing disabled")
+	}
+
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
 		logger.Info("using azuresql store", zap.String("url", dbURL))
 		az, err := azuresql.New(dbURL)
@@ -68,9 +97,9 @@ func main() {
 		}
 		defer func() { _ = az.Close() }()
 		targetSvc = service.NewTargetService(az.TargetStore(), az.CheckStore(), az.ResultStore(), az.IncidentStore())
-		resultSvc = service.NewResultService(az.ResultStore())
-		incidentSvc = service.NewIncidentService(az.IncidentStore(), az.ResultStore())
-		checkSvc = service.NewCheckService(az.CheckStore(), az.TargetStore(), resultSvc, incidentSvc, checkers)
+		resultSvc = service.NewResultService(az.ResultStore(), pub)
+		incidentSvc = service.NewIncidentService(az.IncidentStore(), az.ResultStore(), pub)
+		checkSvc = service.NewCheckService(az.CheckStore(), az.TargetStore(), resultSvc, checkers)
 		agentH = v1.NewAgentHandler(az.AgentStore(), az.CheckStore())
 		orgSvc = service.NewOrgService(az.OrgStore())
 		teamSvc = service.NewTeamService(az.TeamStore())
@@ -82,9 +111,9 @@ func main() {
 			logger.Fatal("open sqlite store", zap.Error(err))
 		}
 		targetSvc = service.NewTargetService(lite, lite.CheckStore(), lite.ResultStore(), lite.IncidentStore())
-		resultSvc = service.NewResultService(lite.ResultStore())
-		incidentSvc = service.NewIncidentService(lite.IncidentStore(), lite.ResultStore())
-		checkSvc = service.NewCheckService(lite.CheckStore(), lite, resultSvc, incidentSvc, checkers)
+		resultSvc = service.NewResultService(lite.ResultStore(), pub)
+		incidentSvc = service.NewIncidentService(lite.IncidentStore(), lite.ResultStore(), pub)
+		checkSvc = service.NewCheckService(lite.CheckStore(), lite, resultSvc, checkers)
 		agentH = v1.NewAgentHandler(lite.AgentStore(), lite.CheckStore())
 		orgSvc = service.NewOrgService(lite.OrgStore())
 		teamSvc = service.NewTeamService(lite.TeamStore())
@@ -160,6 +189,12 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	if js != nil {
+		if err := consumer.StartIncidentDetector(ctx, js, incidentSvc, logger); err != nil {
+			logger.Fatal("start incident detector", zap.Error(err))
+		}
+	}
 
 	go func() {
 		logger.Info("server started", zap.String("port", port))

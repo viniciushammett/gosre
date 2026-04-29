@@ -12,19 +12,23 @@ import (
 
 	"github.com/gosre/gosre-sdk/domain"
 	"github.com/gosre/gosre-sdk/store"
+	"github.com/viniciushammett/gosre/gosre-events/events"
+	gosrejs "github.com/viniciushammett/gosre/gosre-events/jetstream"
 )
 
 const consecutiveFailuresThreshold = 3
 
 // IncidentService handles incident detection and state management.
 type IncidentService struct {
-	store   store.IncidentStore
-	results store.ResultStore
+	store     store.IncidentStore
+	results   store.ResultStore
+	publisher *gosrejs.Publisher
 }
 
 // NewIncidentService constructs an IncidentService.
-func NewIncidentService(s store.IncidentStore, results store.ResultStore) *IncidentService {
-	return &IncidentService{store: s, results: results}
+// pub may be nil — publishing is skipped when NATS is not configured.
+func NewIncidentService(s store.IncidentStore, results store.ResultStore, pub *gosrejs.Publisher) *IncidentService {
+	return &IncidentService{store: s, results: results, publisher: pub}
 }
 
 // Process evaluates a saved Result and opens or resolves an Incident as needed.
@@ -110,7 +114,21 @@ func (svc *IncidentService) openIfThresholdReached(ctx context.Context, r domain
 		LastSeen:  now,
 		ResultIDs: ids,
 	}
-	return svc.store.Save(ctx, incident)
+	if err := svc.store.Save(ctx, incident); err != nil {
+		return err
+	}
+	if svc.publisher != nil {
+		_ = svc.publisher.Publish(ctx, events.SubjectIncidentsOpened, events.IncidentOpenedPayload{
+			EventEnvelope: events.NewEnvelope(),
+			IncidentID:    incident.ID,
+			TargetID:      incident.TargetID,
+			State:         string(incident.State),
+			FirstSeen:     incident.FirstSeen,
+			LastSeen:      incident.LastSeen,
+			ResultIDs:     incident.ResultIDs,
+		})
+	}
+	return nil
 }
 
 func (svc *IncidentService) resolveIfOpen(ctx context.Context, r domain.Result) error {
@@ -126,7 +144,21 @@ func (svc *IncidentService) resolveIfOpen(ctx context.Context, r domain.Result) 
 		inc.State = domain.IncidentStateResolved
 		inc.LastSeen = time.Now().UTC()
 		inc.ResultIDs = append(inc.ResultIDs, r.ID)
-		return svc.store.Update(ctx, inc)
+		if err := svc.store.Update(ctx, inc); err != nil {
+			return err
+		}
+		if svc.publisher != nil {
+			_ = svc.publisher.Publish(ctx, events.SubjectIncidentsResolved, events.IncidentResolvedPayload{
+				EventEnvelope: events.NewEnvelope(),
+				IncidentID:    inc.ID,
+				TargetID:      inc.TargetID,
+				State:         string(inc.State),
+				FirstSeen:     inc.FirstSeen,
+				LastSeen:      inc.LastSeen,
+				ResultIDs:     inc.ResultIDs,
+			})
+		}
+		return nil
 	}
 	return nil
 }
