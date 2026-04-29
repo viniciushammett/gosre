@@ -22,4 +22,5 @@ type Target struct {
 	Tags      []string          `json:"tags,omitempty"`
 	Metadata  map[string]string `json:"metadata,omitempty"`
 	ProjectID string            `json:"project_id,omitempty"`
+	ServiceID *string           `json:"service_id,omitempty"`
 }

@@ -1,0 +1,1 @@
+ALTER TABLE targets ADD COLUMN service_id TEXT DEFAULT NULL;

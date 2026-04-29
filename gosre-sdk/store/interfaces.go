@@ -70,3 +70,29 @@ type ProjectStore interface {
 	ListByTeam(ctx context.Context, teamID string) ([]domain.Project, error)
 	Delete(ctx context.Context, id string) error
 }
+
+// ServiceStore defines persistence operations for Service catalog entries.
+type ServiceStore interface {
+	Save(ctx context.Context, s domain.Service) error
+	Get(ctx context.Context, id string) (domain.Service, error)
+	List(ctx context.Context) ([]domain.Service, error)
+	ListByProject(ctx context.Context, projectID string) ([]domain.Service, error)
+	Delete(ctx context.Context, id string) error
+}
+
+// DependencyStore defines persistence operations for inter-service Dependency edges.
+type DependencyStore interface {
+	Save(ctx context.Context, d domain.Dependency) error
+	Get(ctx context.Context, id string) (domain.Dependency, error)
+	ListBySource(ctx context.Context, sourceServiceID string) ([]domain.Dependency, error)
+	ListByTarget(ctx context.Context, targetServiceID string) ([]domain.Dependency, error)
+	Delete(ctx context.Context, id string) error
+}
+
+// EnvironmentStore defines persistence operations for Environment entities.
+type EnvironmentStore interface {
+	Save(ctx context.Context, e domain.Environment) error
+	Get(ctx context.Context, id string) (domain.Environment, error)
+	ListByProject(ctx context.Context, projectID string) ([]domain.Environment, error)
+	Delete(ctx context.Context, id string) error
+}

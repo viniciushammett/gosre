@@ -1,0 +1,29 @@
+name: gosre-catalog test
+
+"on":
+  pull_request:
+    paths:
+      - 'gosre-catalog/**'
+      - 'gosre-sdk/**'
+  push:
+    branches: [main]
+    paths:
+      - 'gosre-catalog/**'
+      - 'gosre-sdk/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.2'
+          cache-dependency-path: gosre-catalog/go.sum
+
+      - name: test
+        working-directory: gosre-catalog
+        env:
+          GOWORK: 'off'
+        run: go test -race -cover ./...

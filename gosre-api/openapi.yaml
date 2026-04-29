@@ -394,6 +394,13 @@ components:
           type: object
           additionalProperties:
             type: string
+        project_id:
+          type: string
+          description: Project this target belongs to.
+        service_id:
+          type: string
+          nullable: true
+          description: Optional reference to a gosre-catalog service ID.
 
     CheckType:
       type: string
