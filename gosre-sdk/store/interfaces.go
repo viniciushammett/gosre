@@ -113,3 +113,19 @@ type SLOStore interface {
 	ListByTarget(ctx context.Context, targetID string) ([]domain.SLO, error)
 	Delete(ctx context.Context, id string) error
 }
+
+// NotificationChannelStore defines persistence operations for NotificationChannel entities.
+type NotificationChannelStore interface {
+	Save(ctx context.Context, c domain.NotificationChannel) error
+	Get(ctx context.Context, id string) (domain.NotificationChannel, error)
+	ListByProject(ctx context.Context, projectID string) ([]domain.NotificationChannel, error)
+	Delete(ctx context.Context, id string) error
+}
+
+// NotificationRuleStore defines persistence operations for NotificationRule entities.
+type NotificationRuleStore interface {
+	Save(ctx context.Context, r domain.NotificationRule) error
+	Get(ctx context.Context, id string) (domain.NotificationRule, error)
+	ListByProject(ctx context.Context, projectID string) ([]domain.NotificationRule, error)
+	Delete(ctx context.Context, id string) error
+}
