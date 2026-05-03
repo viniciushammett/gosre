@@ -449,6 +449,162 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /notification/channels:
+    get:
+      summary: List notification channels for a project
+      operationId: listNotificationChannels
+      tags: [notifications]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of notification channels
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationChannelListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      summary: Create a notification channel
+      operationId: createNotificationChannel
+      tags: [notifications]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationChannel"
+      responses:
+        "201":
+          description: Notification channel created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationChannelResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /notification/channels/{id}:
+    get:
+      summary: Get a notification channel by ID
+      operationId: getNotificationChannel
+      tags: [notifications]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Notification channel found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationChannelResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Delete a notification channel
+      operationId: deleteNotificationChannel
+      tags: [notifications]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Notification channel deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /notification/rules:
+    get:
+      summary: List notification rules for a project
+      operationId: listNotificationRules
+      tags: [notifications]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of notification rules
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationRuleListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      summary: Create a notification rule
+      operationId: createNotificationRule
+      tags: [notifications]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationRule"
+      responses:
+        "201":
+          description: Notification rule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationRuleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /notification/rules/{id}:
+    get:
+      summary: Get a notification rule by ID
+      operationId: getNotificationRule
+      tags: [notifications]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Notification rule found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationRuleResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Delete a notification rule
+      operationId: deleteNotificationRule
+      tags: [notifications]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Notification rule deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /scheduler/status:
     get:
       summary: Get scheduler assignment distribution
@@ -812,6 +968,82 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/BudgetResult"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    NotificationChannelKind:
+      type: string
+      enum: [slack, email, webhook]
+
+    NotificationChannel:
+      type: object
+      required: [project_id, name, kind]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        name:
+          type: string
+        kind:
+          $ref: "#/components/schemas/NotificationChannelKind"
+        config:
+          type: object
+          additionalProperties:
+            type: string
+
+    NotificationChannelResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/NotificationChannel"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    NotificationChannelListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationChannel"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    NotificationRule:
+      type: object
+      required: [project_id, channel_id, event_kind]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        channel_id:
+          type: string
+        event_kind:
+          type: string
+          description: NATS subject name, e.g. "gosre.incidents.opened"
+        tag_filter:
+          type: array
+          items:
+            type: string
+          description: Match against target tags. Empty matches all.
+
+    NotificationRuleResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/NotificationRule"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    NotificationRuleListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationRule"
         error:
           $ref: "#/components/schemas/Error"
 

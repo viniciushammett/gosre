@@ -65,6 +65,8 @@ func main() {
 		orgSvc      *service.OrgService
 		teamSvc     *service.TeamService
 		projectSvc  *service.ProjectService
+		notifSvc    *service.NotificationService
+		notifH      *v1.NotificationHandler
 	)
 
 	var (
@@ -110,6 +112,8 @@ func main() {
 		orgSvc = service.NewOrgService(az.OrgStore())
 		teamSvc = service.NewTeamService(az.TeamStore())
 		projectSvc = service.NewProjectService(az.ProjectStore())
+		notifSvc = service.NewNotificationService(az.NotificationChannelStore(), az.NotificationRuleStore())
+		notifH = v1.NewNotificationHandler(notifSvc)
 	} else {
 		logger.Info("using sqlite store", zap.String("path", "gosre.db"))
 		lite, err := sqlite.New("gosre.db")
@@ -127,6 +131,8 @@ func main() {
 		orgSvc = service.NewOrgService(lite.OrgStore())
 		teamSvc = service.NewTeamService(lite.TeamStore())
 		projectSvc = service.NewProjectService(lite.ProjectStore())
+		notifSvc = service.NewNotificationService(lite.NotificationChannelStore(), lite.NotificationRuleStore())
+		notifH = v1.NewNotificationHandler(notifSvc)
 	}
 
 	targetH := v1.NewTargetHandler(targetSvc)
@@ -173,11 +179,17 @@ func main() {
 	api.GET("/organizations/:org_id/teams/:id", teamH.Get)
 	api.GET("/organizations/:org_id/projects", projectH.ListByOrg)
 	api.GET("/organizations/:org_id/projects/:id", projectH.Get)
+	api.GET("/notification/channels", notifH.ListChannels)
+	api.GET("/notification/channels/:id", notifH.GetChannel)
+	api.GET("/notification/rules", notifH.ListRules)
+	api.GET("/notification/rules/:id", notifH.GetRule)
 
 	// JWT-protected — operator+ (write access)
 	op := api.Group("/")
 	op.Use(middleware.RequireRole("operator", "admin", "owner"))
 	op.POST("/slos", sloH.Create)
+	op.POST("/notification/channels", notifH.CreateChannel)
+	op.POST("/notification/rules", notifH.CreateRule)
 	op.POST("/targets", targetH.CreateTarget)
 	op.PUT("/targets/:id", targetH.UpdateTarget)
 	op.POST("/checks", checkH.CreateCheck)
@@ -196,6 +208,8 @@ func main() {
 	adm.DELETE("/organizations/:org_id", orgH.Delete)
 	adm.DELETE("/organizations/:org_id/teams/:id", teamH.Delete)
 	adm.DELETE("/organizations/:org_id/projects/:id", projectH.Delete)
+	adm.DELETE("/notification/channels/:id", notifH.DeleteChannel)
+	adm.DELETE("/notification/rules/:id", notifH.DeleteRule)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
