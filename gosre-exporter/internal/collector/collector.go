@@ -32,6 +32,11 @@ type Collector struct {
 	checkDuration    *prometheus.Desc
 	incidentTotal    *prometheus.Desc
 	agentUp          *prometheus.Desc
+
+	sloCompliance        *prometheus.Desc
+	errorBudgetRemaining *prometheus.Desc
+	burnRate1h           *prometheus.Desc
+	burnRate6h           *prometheus.Desc
 }
 
 // New constructs a Collector backed by the given API client.
@@ -71,6 +76,30 @@ func New(client *apiclient.Client, apiTimeout time.Duration, logger *zap.Logger)
 			[]string{"agent_id", "hostname"},
 			nil,
 		),
+		sloCompliance: prometheus.NewDesc(
+			"gosre_slo_compliance",
+			"SLO compliance in the observation window (0 to 1). Omitted when insufficient data (L-030).",
+			[]string{"slo_id", "target_id"},
+			nil,
+		),
+		errorBudgetRemaining: prometheus.NewDesc(
+			"gosre_error_budget_remaining",
+			"Fraction of error budget not yet consumed (0 to 1). Omitted when insufficient data.",
+			[]string{"slo_id", "target_id"},
+			nil,
+		),
+		burnRate1h: prometheus.NewDesc(
+			"gosre_burn_rate_1h",
+			"Error budget burn rate over the last 1 hour. Values > 1 indicate exhaustion.",
+			[]string{"slo_id", "target_id"},
+			nil,
+		),
+		burnRate6h: prometheus.NewDesc(
+			"gosre_burn_rate_6h",
+			"Error budget burn rate over the last 6 hours. Values > 1 indicate exhaustion.",
+			[]string{"slo_id", "target_id"},
+			nil,
+		),
 	}
 }
 
@@ -81,6 +110,10 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.checkDuration
 	ch <- c.incidentTotal
 	ch <- c.agentUp
+	ch <- c.sloCompliance
+	ch <- c.errorBudgetRemaining
+	ch <- c.burnRate1h
+	ch <- c.burnRate6h
 }
 
 // Collect fetches live data from gosre-api and sends metrics to ch.
@@ -135,6 +168,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 	c.collectCheckDuration(ch, results, checkType)
 	c.collectIncidents(ch, incidents)
 	c.collectAgentUp(ch, agents)
+	c.collectSLOMetrics(ctx, ch, targets)
 }
 
 func (c *Collector) collectTargetUp(ch chan<- prometheus.Metric, targets []domain.Target, results []domain.Result) {
@@ -230,6 +264,34 @@ func (c *Collector) collectAgentUp(ch chan<- prometheus.Metric, agents []apiclie
 			c.agentUp, prometheus.GaugeValue, up,
 			a.ID, a.Hostname,
 		)
+	}
+}
+
+func (c *Collector) collectSLOMetrics(ctx context.Context, ch chan<- prometheus.Metric, targets []domain.Target) {
+	for _, t := range targets {
+		slos, err := c.client.ListSLOsByTarget(ctx, t.ID)
+		if err != nil {
+			c.logger.Warn("collect: list slos", zap.String("target_id", t.ID), zap.Error(err))
+			continue
+		}
+		for _, slo := range slos {
+			budget, err := c.client.GetSLOBudget(ctx, slo.ID)
+			if err != nil {
+				c.logger.Warn("collect: get slo budget", zap.String("slo_id", slo.ID), zap.Error(err))
+				continue
+			}
+			if budget.InsufficientData {
+				continue
+			}
+			remaining := (budget.Compliance - slo.Threshold) / (1 - slo.Threshold)
+			if remaining < 0 {
+				remaining = 0
+			}
+			ch <- prometheus.MustNewConstMetric(c.sloCompliance, prometheus.GaugeValue, budget.Compliance, slo.ID, t.ID)
+			ch <- prometheus.MustNewConstMetric(c.errorBudgetRemaining, prometheus.GaugeValue, remaining, slo.ID, t.ID)
+			ch <- prometheus.MustNewConstMetric(c.burnRate1h, prometheus.GaugeValue, budget.BurnRate1h, slo.ID, t.ID)
+			ch <- prometheus.MustNewConstMetric(c.burnRate6h, prometheus.GaugeValue, budget.BurnRate6h, slo.ID, t.ID)
+		}
 	}
 }
 

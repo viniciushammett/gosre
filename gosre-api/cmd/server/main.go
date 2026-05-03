@@ -60,6 +60,8 @@ func main() {
 		checkSvc    *service.CheckService
 		agentH      *v1.AgentHandler
 		schedulerH  *v1.SchedulerHandler
+		sloSvc      *service.SLOService
+		sloH        *v1.SLOHandler
 		orgSvc      *service.OrgService
 		teamSvc     *service.TeamService
 		projectSvc  *service.ProjectService
@@ -103,6 +105,8 @@ func main() {
 		checkSvc = service.NewCheckService(az.CheckStore(), az.TargetStore(), resultSvc, checkers)
 		agentH = v1.NewAgentHandler(az.AgentStore(), az.CheckStore())
 		schedulerH = v1.NewSchedulerHandler(az.AgentStore(), az.CheckStore())
+		sloSvc = service.NewSLOService(az.SLOStore(), az.ResultStore())
+		sloH = v1.NewSLOHandler(sloSvc)
 		orgSvc = service.NewOrgService(az.OrgStore())
 		teamSvc = service.NewTeamService(az.TeamStore())
 		projectSvc = service.NewProjectService(az.ProjectStore())
@@ -118,6 +122,8 @@ func main() {
 		checkSvc = service.NewCheckService(lite.CheckStore(), lite, resultSvc, checkers)
 		agentH = v1.NewAgentHandler(lite.AgentStore(), lite.CheckStore())
 		schedulerH = v1.NewSchedulerHandler(lite.AgentStore(), lite.CheckStore())
+		sloSvc = service.NewSLOService(lite.SLOStore(), lite.ResultStore())
+		sloH = v1.NewSLOHandler(sloSvc)
 		orgSvc = service.NewOrgService(lite.OrgStore())
 		teamSvc = service.NewTeamService(lite.TeamStore())
 		projectSvc = service.NewProjectService(lite.ProjectStore())
@@ -158,6 +164,9 @@ func main() {
 	api.GET("/incidents", incidentH.ListIncidents)
 	api.GET("/agents", agentH.List)
 	api.GET("/scheduler/status", schedulerH.Status)
+	api.GET("/slos", sloH.List)
+	api.GET("/slos/:id", sloH.Get)
+	api.GET("/slos/:id/budget", sloH.Budget)
 	api.GET("/organizations", orgH.List)
 	api.GET("/organizations/:org_id", orgH.Get)
 	api.GET("/organizations/:org_id/teams", teamH.ListByOrg)
@@ -168,6 +177,7 @@ func main() {
 	// JWT-protected — operator+ (write access)
 	op := api.Group("/")
 	op.Use(middleware.RequireRole("operator", "admin", "owner"))
+	op.POST("/slos", sloH.Create)
 	op.POST("/targets", targetH.CreateTarget)
 	op.PUT("/targets/:id", targetH.UpdateTarget)
 	op.POST("/checks", checkH.CreateCheck)
@@ -181,6 +191,7 @@ func main() {
 	// JWT-protected — admin+ (destructive operations)
 	adm := api.Group("/")
 	adm.Use(middleware.RequireRole("admin", "owner"))
+	adm.DELETE("/slos/:id", sloH.Delete)
 	adm.DELETE("/targets/:id", targetH.DeleteTarget)
 	adm.DELETE("/organizations/:org_id", orgH.Delete)
 	adm.DELETE("/organizations/:org_id/teams/:id", teamH.Delete)

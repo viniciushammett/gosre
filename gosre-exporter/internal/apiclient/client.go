@@ -114,6 +114,52 @@ func (c *Client) ListAgents(ctx context.Context) ([]AgentRecord, error) {
 	return agents, nil
 }
 
+// SLORecord holds SLO data returned by GET /api/v1/slos.
+type SLORecord struct {
+	ID            string  `json:"id"`
+	TargetID      string  `json:"target_id"`
+	Name          string  `json:"name"`
+	Metric        string  `json:"metric"`
+	Threshold     float64 `json:"threshold"`
+	WindowSeconds int64   `json:"window_seconds"`
+}
+
+// BudgetResult holds error budget metrics returned by GET /api/v1/slos/:id/budget.
+type BudgetResult struct {
+	SLOID            string  `json:"slo_id"`
+	TargetID         string  `json:"target_id"`
+	Compliance       float64 `json:"compliance"`
+	BurnRate1h       float64 `json:"burn_rate_1h"`
+	BurnRate6h       float64 `json:"burn_rate_6h"`
+	InsufficientData bool    `json:"insufficient_data"`
+}
+
+// ListSLOsByTarget returns all SLOs for the given targetID.
+func (c *Client) ListSLOsByTarget(ctx context.Context, targetID string) ([]SLORecord, error) {
+	raw, err := c.get(ctx, "/api/v1/slos?target_id="+targetID)
+	if err != nil {
+		return nil, err
+	}
+	var slos []SLORecord
+	if err := json.Unmarshal(raw, &slos); err != nil {
+		return nil, fmt.Errorf("apiclient: decode slos: %w", err)
+	}
+	return slos, nil
+}
+
+// GetSLOBudget returns the error budget result for the given sloID.
+func (c *Client) GetSLOBudget(ctx context.Context, sloID string) (BudgetResult, error) {
+	raw, err := c.get(ctx, "/api/v1/slos/"+sloID+"/budget")
+	if err != nil {
+		return BudgetResult{}, err
+	}
+	var result BudgetResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return BudgetResult{}, fmt.Errorf("apiclient: decode budget: %w", err)
+	}
+	return result, nil
+}
+
 func (c *Client) get(ctx context.Context, path string) (json.RawMessage, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {

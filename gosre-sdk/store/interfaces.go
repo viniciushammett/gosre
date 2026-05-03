@@ -105,3 +105,11 @@ type AssignmentStore interface {
 	ListByAgent(ctx context.Context, agentID string) ([]domain.Assignment, error)
 	DeleteByAgent(ctx context.Context, agentID string) error
 }
+
+// SLOStore defines persistence operations for SLO entities.
+type SLOStore interface {
+	Save(ctx context.Context, s domain.SLO) error
+	Get(ctx context.Context, id string) (domain.SLO, error)
+	ListByTarget(ctx context.Context, targetID string) ([]domain.SLO, error)
+	Delete(ctx context.Context, id string) error
+}

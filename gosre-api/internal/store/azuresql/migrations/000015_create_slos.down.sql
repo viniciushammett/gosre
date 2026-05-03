@@ -1,0 +1,2 @@
+IF OBJECT_ID('slos', 'U') IS NOT NULL
+DROP TABLE slos;

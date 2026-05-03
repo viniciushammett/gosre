@@ -352,6 +352,103 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /slos:
+    get:
+      summary: List SLOs for a target
+      operationId: listSLOs
+      tags: [slos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: target_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of SLOs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SLOListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      summary: Create a SLO
+      operationId: createSLO
+      tags: [slos]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SLO"
+      responses:
+        "201":
+          description: SLO created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SLOResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /slos/{id}:
+    get:
+      summary: Get a SLO by ID
+      operationId: getSLO
+      tags: [slos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: SLO found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SLOResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Delete a SLO
+      operationId: deleteSLO
+      tags: [slos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: SLO deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /slos/{id}/budget:
+    get:
+      summary: Get error budget for a SLO
+      operationId: getSLOBudget
+      tags: [slos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Error budget result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BudgetResultResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /scheduler/status:
     get:
       summary: Get scheduler assignment distribution
@@ -643,6 +740,78 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Assignment"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    SLO:
+      type: object
+      required: [target_id, name, metric, threshold, window_seconds]
+      properties:
+        id:
+          type: string
+        target_id:
+          type: string
+        name:
+          type: string
+        metric:
+          type: string
+          description: e.g. "availability"
+        threshold:
+          type: number
+          format: double
+          description: e.g. 0.999 for 99.9%
+        window_seconds:
+          type: integer
+          format: int64
+          description: Observation window in seconds (e.g. 86400 for 24h)
+
+    SLOResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/SLO"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    SLOListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SLO"
+        error:
+          $ref: "#/components/schemas/Error"
+
+    BudgetResult:
+      type: object
+      properties:
+        slo_id:
+          type: string
+        target_id:
+          type: string
+        compliance:
+          type: number
+          format: double
+        burn_rate_1h:
+          type: number
+          format: double
+        burn_rate_6h:
+          type: number
+          format: double
+        burn_rate_24h:
+          type: number
+          format: double
+        insufficient_data:
+          type: boolean
+        total_results:
+          type: integer
+
+    BudgetResultResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/BudgetResult"
         error:
           $ref: "#/components/schemas/Error"
 
