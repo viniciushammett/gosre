@@ -59,6 +59,7 @@ func main() {
 		incidentSvc *service.IncidentService
 		checkSvc    *service.CheckService
 		agentH      *v1.AgentHandler
+		schedulerH  *v1.SchedulerHandler
 		orgSvc      *service.OrgService
 		teamSvc     *service.TeamService
 		projectSvc  *service.ProjectService
@@ -101,6 +102,7 @@ func main() {
 		incidentSvc = service.NewIncidentService(az.IncidentStore(), az.ResultStore(), pub)
 		checkSvc = service.NewCheckService(az.CheckStore(), az.TargetStore(), resultSvc, checkers)
 		agentH = v1.NewAgentHandler(az.AgentStore(), az.CheckStore())
+		schedulerH = v1.NewSchedulerHandler(az.AgentStore(), az.CheckStore())
 		orgSvc = service.NewOrgService(az.OrgStore())
 		teamSvc = service.NewTeamService(az.TeamStore())
 		projectSvc = service.NewProjectService(az.ProjectStore())
@@ -115,6 +117,7 @@ func main() {
 		incidentSvc = service.NewIncidentService(lite.IncidentStore(), lite.ResultStore(), pub)
 		checkSvc = service.NewCheckService(lite.CheckStore(), lite, resultSvc, checkers)
 		agentH = v1.NewAgentHandler(lite.AgentStore(), lite.CheckStore())
+		schedulerH = v1.NewSchedulerHandler(lite.AgentStore(), lite.CheckStore())
 		orgSvc = service.NewOrgService(lite.OrgStore())
 		teamSvc = service.NewTeamService(lite.TeamStore())
 		projectSvc = service.NewProjectService(lite.ProjectStore())
@@ -154,6 +157,7 @@ func main() {
 	api.GET("/results/:id", resultH.GetResult)
 	api.GET("/incidents", incidentH.ListIncidents)
 	api.GET("/agents", agentH.List)
+	api.GET("/scheduler/status", schedulerH.Status)
 	api.GET("/organizations", orgH.List)
 	api.GET("/organizations/:org_id", orgH.Get)
 	api.GET("/organizations/:org_id/teams", teamH.ListByOrg)

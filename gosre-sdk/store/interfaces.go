@@ -96,3 +96,12 @@ type EnvironmentStore interface {
 	ListByProject(ctx context.Context, projectID string) ([]domain.Environment, error)
 	Delete(ctx context.Context, id string) error
 }
+
+// AssignmentStore defines persistence operations for check-to-agent Assignment records.
+// Implementations are expected to use Redis — not SQL — for low-latency reads by the scheduler.
+type AssignmentStore interface {
+	Save(ctx context.Context, a domain.Assignment) error
+	Get(ctx context.Context, id string) (domain.Assignment, error)
+	ListByAgent(ctx context.Context, agentID string) ([]domain.Assignment, error)
+	DeleteByAgent(ctx context.Context, agentID string) error
+}

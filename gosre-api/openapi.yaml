@@ -352,6 +352,26 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /scheduler/status:
+    get:
+      summary: Get scheduler assignment distribution
+      operationId: getSchedulerStatus
+      tags: [scheduler]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current scheduler status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/SchedulerStatus"
+                  error:
+                    $ref: "#/components/schemas/Error"
+
 components:
   securitySchemes:
     apiKey:
@@ -625,6 +645,20 @@ components:
             $ref: "#/components/schemas/Assignment"
         error:
           $ref: "#/components/schemas/Error"
+
+    SchedulerStatus:
+      type: object
+      properties:
+        agents_active:
+          type: integer
+        agents_down:
+          type: integer
+        total_checks:
+          type: integer
+        assignments_per_agent:
+          type: object
+          additionalProperties:
+            type: integer
 
   responses:
     BadRequest:
