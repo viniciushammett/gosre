@@ -9,7 +9,10 @@ const navItems = [
   { to: "/results", label: "Results" },
   { to: "/checks", label: "Checks" },
   { to: "/agents", label: "Agents" },
+  { to: "/catalog", label: "Catalog" },
+  { to: "/slos", label: "SLOs" },
   { to: "/settings/organization", label: "Settings" },
+  { to: "/settings/notifications", label: "Notifications" },
 ];
 
 export default function Layout() {
