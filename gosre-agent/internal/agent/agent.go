@@ -12,19 +12,24 @@ import (
 	"os"
 	"time"
 
+	natsjets "github.com/nats-io/nats.go/jetstream"
 	"go.uber.org/zap"
 
 	"github.com/gosre/gosre-agent/internal/check"
 	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-events/events"
+	gosrejs "github.com/viniciushammett/gosre/gosre-events/jetstream"
 )
 
 type Agent struct {
 	id         string
+	hostname   string
 	apiURL     string
 	apiKey     string
 	httpClient *http.Client
 	logger     *zap.Logger
 	checkers   map[domain.CheckType]domain.Checker
+	pub        *gosrejs.Publisher
 }
 
 func New(apiURL, apiKey string, logger *zap.Logger) *Agent {
@@ -102,8 +107,15 @@ func (a *Agent) Register(ctx context.Context) error {
 	}
 
 	a.id = out.Data.ID
+	a.hostname = hostname
 	a.logger.Info("agent registered", zap.String("agent_id", a.id), zap.String("hostname", hostname))
 	return nil
+}
+
+// SetPublisher attaches a NATS publisher for parallel heartbeat events.
+// If not called the agent operates in HTTP-only mode.
+func (a *Agent) SetPublisher(pub *gosrejs.Publisher) {
+	a.pub = pub
 }
 
 func (a *Agent) Heartbeat(ctx context.Context) {
@@ -114,23 +126,45 @@ func (a *Agent) Heartbeat(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			url := fmt.Sprintf("%s/api/v1/agents/%s/heartbeat", a.apiURL, a.id)
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
-			if err != nil {
-				a.logger.Warn("heartbeat request build failed", zap.Error(err))
-				continue
-			}
-			if a.apiKey != "" {
-				req.Header.Set("X-API-Key", a.apiKey)
-			}
-			resp, err := a.httpClient.Do(req)
-			if err != nil {
-				a.logger.Warn("heartbeat failed", zap.Error(err))
-				continue
-			}
-			_ = resp.Body.Close()
-			a.logger.Debug("heartbeat sent", zap.String("agent_id", a.id))
+			a.sendHTTPHeartbeat(ctx)
+			a.sendNATSHeartbeat(ctx)
 		}
+	}
+}
+
+func (a *Agent) sendHTTPHeartbeat(ctx context.Context) {
+	url := fmt.Sprintf("%s/api/v1/agents/%s/heartbeat", a.apiURL, a.id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
+	if err != nil {
+		a.logger.Warn("heartbeat request build failed", zap.Error(err))
+		return
+	}
+	if a.apiKey != "" {
+		req.Header.Set("X-API-Key", a.apiKey)
+	}
+	resp, err := a.httpClient.Do(req)
+	if err != nil {
+		a.logger.Warn("heartbeat failed", zap.Error(err))
+		return
+	}
+	_ = resp.Body.Close()
+	a.logger.Debug("heartbeat sent", zap.String("agent_id", a.id))
+}
+
+// sendNATSHeartbeat publishes gosre.agents.heartbeat when a NATS publisher is set.
+// Failure is non-fatal — HTTP heartbeat is the authoritative liveness signal.
+func (a *Agent) sendNATSHeartbeat(ctx context.Context) {
+	if a.pub == nil {
+		return
+	}
+	payload := events.AgentHeartbeatPayload{
+		EventEnvelope: events.NewEnvelope(),
+		AgentID:       a.id,
+		Hostname:      a.hostname,
+		Version:       "0.1.0",
+	}
+	if err := a.pub.Publish(ctx, events.SubjectAgentsHeartbeat, payload); err != nil {
+		a.logger.Warn("heartbeat nats publish failed", zap.Error(err))
 	}
 }
 
@@ -255,6 +289,31 @@ func (a *Agent) executeAssignment(ctx context.Context, asgn assignment) {
 		zap.String("target", target.Address),
 		zap.String("status", string(result.Status)),
 		zap.Int64("duration_ms", result.Duration.Milliseconds()),
+	)
+}
+
+// SubscribeAssignments subscribes to gosre.checks.assigned on NATS JetStream.
+// Messages destined for other agents are acknowledged and skipped.
+// This is a push complement to the HTTP poll loop — both run concurrently.
+// Must be called after Register so that a.id is known.
+func (a *Agent) SubscribeAssignments(ctx context.Context, js natsjets.JetStream) error {
+	durableName := "agent-" + a.id
+	return gosrejs.Subscribe(ctx, js, events.SubjectChecksAssigned, durableName,
+		func(ctx context.Context, data []byte) error {
+			var payload events.CheckAssignedPayload
+			if err := json.Unmarshal(data, &payload); err != nil {
+				return fmt.Errorf("decode check assigned: %w", err)
+			}
+			if payload.AgentID != a.id {
+				return nil // not for this agent — ack and discard
+			}
+			go a.executeAssignment(ctx, assignment{
+				CheckID:  payload.CheckID,
+				TargetID: payload.TargetID,
+				Type:     domain.CheckType(payload.CheckType),
+			})
+			return nil
+		},
 	)
 }
 
