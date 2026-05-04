@@ -1,0 +1,28 @@
+replicaCount: 3
+
+image:
+  repository: nats
+  tag: "2.10.22-alpine"
+  pullPolicy: IfNotPresent
+
+service:
+  clientPort: 4222
+  clusterPort: 6222
+  monitorPort: 8222
+
+jetstream:
+  maxMemoryStore: "256MB"
+  maxFileStore: "1GB"
+
+persistence:
+  enabled: true
+  size: 2Gi
+  storageClass: "managed-csi"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

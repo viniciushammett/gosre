@@ -1,59 +1,54 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "gosre-agent.fullname" . }}
+  name: {{ include "gosre-scheduler.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "gosre-agent.labels" . | nindent 4 }}
+    {{- include "gosre-scheduler.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "gosre-agent.selectorLabels" . | nindent 6 }}
+      {{- include "gosre-scheduler.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "gosre-agent.labels" . | nindent 8 }}
+        {{- include "gosre-scheduler.labels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: gosre-agent
+        - name: gosre-scheduler
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: GOSRE_API_URL
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "gosre-agent.fullname" . }}
+                  name: {{ include "gosre-scheduler.fullname" . }}
                   key: GOSRE_API_URL
-            - name: GOSRE_AGENT_ID
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "gosre-agent.fullname" . }}
-                  key: GOSRE_AGENT_ID
-            - name: GOSRE_POLL_INTERVAL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "gosre-agent.fullname" . }}
-                  key: GOSRE_POLL_INTERVAL
-            - name: GOSRE_LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "gosre-agent.fullname" . }}
-                  key: GOSRE_LOG_LEVEL
-            - name: GOSRE_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "gosre-agent.fullname" . }}
-                  key: api-key
             - name: NATS_URL
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "gosre-agent.fullname" . }}
+                  name: {{ include "gosre-scheduler.fullname" . }}
                   key: NATS_URL
+            - name: SCHEDULER_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-scheduler.fullname" . }}
+                  key: SCHEDULER_INTERVAL
+            - name: GOSRE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gosre-scheduler.fullname" . }}
+                  key: api-key
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gosre-scheduler.fullname" . }}
+                  key: redis-url
           livenessProbe:
             exec:
               command: ["true"]

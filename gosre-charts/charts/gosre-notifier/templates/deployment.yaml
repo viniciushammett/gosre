@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gosre-notifier.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gosre-notifier.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "gosre-notifier.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gosre-notifier.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: gosre-notifier
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: GOSRE_NOTIFIER_NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-notifier.fullname" . }}
+                  key: GOSRE_NOTIFIER_NATS_URL
+            - name: GOSRE_NOTIFIER_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-notifier.fullname" . }}
+                  key: GOSRE_NOTIFIER_API_URL
+            - name: GOSRE_NOTIFIER_REDIS_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-notifier.fullname" . }}
+                  key: GOSRE_NOTIFIER_REDIS_ADDR
+            - name: GOSRE_NOTIFIER_REDIS_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-notifier.fullname" . }}
+                  key: GOSRE_NOTIFIER_REDIS_DB
+            - name: GOSRE_NOTIFIER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gosre-notifier.fullname" . }}
+                  key: api-key
+            - name: GOSRE_NOTIFIER_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gosre-notifier.fullname" . }}
+                  key: redis-password
+          livenessProbe:
+            exec:
+              command: ["true"]
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

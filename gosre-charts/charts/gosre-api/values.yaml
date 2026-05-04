@@ -15,9 +15,12 @@ service:
 env:
   dbPath: "/data/gosre.db"
   logLevel: "info"
+  natsURL: ""
+  catalogURL: "http://gosre-gosre-catalog:8081"
 
 apiKey: ""
 jwtSecret: ""
+databaseURL: ""
 
 persistence:
   enabled: true

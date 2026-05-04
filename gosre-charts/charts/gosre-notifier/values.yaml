@@ -4,18 +4,18 @@ imagePullSecrets:
   - name: ghcr-secret
 
 image:
-  repository: ghcr.io/viniciushammett/gosre/gosre-agent
+  repository: ghcr.io/viniciushammett/gosre/gosre-notifier
   tag: "latest"
   pullPolicy: Always
 
 env:
-  apiURL: "http://gosre-api:8080"
-  agentID: ""
-  pollInterval: "30s"
-  logLevel: "info"
   natsURL: "nats://gosre-gosre-nats:4222"
+  apiURL: "http://gosre-gosre-api:8080"
+  redisAddr: "gosre-redis-master:6379"
+  redisDB: "0"
 
 apiKey: ""
+redisPassword: ""
 
 resources:
   requests:

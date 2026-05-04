@@ -16,3 +16,12 @@ dependencies:
   - name: gosre-web
     version: "0.1.0"
     repository: "file://../gosre-web"
+  - name: gosre-nats
+    version: "0.1.0"
+    repository: "file://../gosre-nats"
+  - name: gosre-scheduler
+    version: "0.1.0"
+    repository: "file://../gosre-scheduler"
+  - name: gosre-notifier
+    version: "0.1.0"
+    repository: "file://../gosre-notifier"

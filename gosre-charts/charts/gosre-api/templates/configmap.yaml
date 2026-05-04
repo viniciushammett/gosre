@@ -8,3 +8,5 @@ metadata:
 data:
   GOSRE_DB_PATH: {{ .Values.env.dbPath | quote }}
   GOSRE_LOG_LEVEL: {{ .Values.env.logLevel | quote }}
+  NATS_URL: {{ .Values.env.natsURL | quote }}
+  GOSRE_CATALOG_URL: {{ .Values.env.catalogURL | quote }}

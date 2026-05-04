@@ -53,6 +53,16 @@ spec:
                 secretKeyRef:
                   name: {{ include "gosre-api.fullname" . }}
                   key: database-url
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-api.fullname" . }}
+                  key: NATS_URL
+            - name: GOSRE_CATALOG_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gosre-api.fullname" . }}
+                  key: GOSRE_CATALOG_URL
           volumeMounts:
             - name: data
               mountPath: /data

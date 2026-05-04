@@ -1,0 +1,5 @@
+apiVersion: v2
+name: gosre-scheduler
+description: GoSRE Scheduler — consistent hashing check assignment with Redis and NATS
+version: 0.1.0
+appVersion: "0.1.0"

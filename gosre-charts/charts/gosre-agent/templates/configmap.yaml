@@ -10,3 +10,4 @@ data:
   GOSRE_AGENT_ID: {{ .Values.env.agentID | quote }}
   GOSRE_POLL_INTERVAL: {{ .Values.env.pollInterval | quote }}
   GOSRE_LOG_LEVEL: {{ .Values.env.logLevel | quote }}
+  NATS_URL: {{ .Values.env.natsURL | quote }}
