@@ -10,8 +10,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
-	"github.com/gosre/gosre-exporter/internal/apiclient"
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-exporter/internal/apiclient"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 const agentOnlineThreshold = 60 * time.Second

@@ -1,9 +1,9 @@
-module github.com/gosre/gosre-exporter
+module github.com/viniciushammett/gosre/gosre-exporter
 
 go 1.26.2
 
 require (
-	github.com/gosre/gosre-sdk v0.1.0
+	github.com/viniciushammett/gosre/gosre-sdk v0.1.0
 	github.com/prometheus/client_golang v1.23.2
 	go.uber.org/zap v1.27.1
 )
@@ -25,4 +25,4 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 )
 
-replace github.com/gosre/gosre-sdk => ../gosre-sdk
+replace github.com/viniciushammett/gosre/gosre-sdk => ../gosre-sdk

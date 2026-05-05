@@ -15,8 +15,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
-	"github.com/gosre/gosre-exporter/internal/apiclient"
-	"github.com/gosre/gosre-exporter/internal/collector"
+	"github.com/viniciushammett/gosre/gosre-exporter/internal/apiclient"
+	"github.com/viniciushammett/gosre/gosre-exporter/internal/collector"
 )
 
 func main() {

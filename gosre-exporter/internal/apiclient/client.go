@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // Client fetches data from gosre-api over HTTP.
