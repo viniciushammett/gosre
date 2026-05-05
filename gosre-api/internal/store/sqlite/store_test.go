@@ -7,9 +7,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 func newTestStore(t *testing.T) *Store {

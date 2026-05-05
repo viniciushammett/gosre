@@ -13,9 +13,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/viniciushammett/gosre/gosre-api/internal/service"
-	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 	"github.com/viniciushammett/gosre/gosre-events/events"
 	gosrejs "github.com/viniciushammett/gosre/gosre-events/jetstream"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // StartIncidentDetector subscribes to gosre.results.created and runs incident

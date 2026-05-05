@@ -11,8 +11,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 	"github.com/redis/go-redis/v9"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 const (

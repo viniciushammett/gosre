@@ -13,12 +13,12 @@ import (
 
 	"go.uber.org/zap"
 
-	sdkclient "github.com/viniciushammett/gosre/gosre-sdk/client"
-	"github.com/viniciushammett/gosre/gosre-sdk/domain"
-	"github.com/viniciushammett/gosre/gosre-sdk/store"
 	"github.com/viniciushammett/gosre/gosre-events/events"
 	"github.com/viniciushammett/gosre/gosre-events/jetstream"
 	"github.com/viniciushammett/gosre/gosre-scheduler/internal/hash"
+	sdkclient "github.com/viniciushammett/gosre/gosre-sdk/client"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/store"
 )
 
 // agentDownThreshold is the maximum age of a heartbeat before an agent is

@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/viniciushammett/gosre/gosre-sdk/domain"
-	"github.com/viniciushammett/gosre/gosre-sdk/store"
 	"github.com/viniciushammett/gosre/gosre-events/events"
 	gosrejs "github.com/viniciushammett/gosre/gosre-events/jetstream"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/store"
 )
 
 // ResultService handles business logic for Result entities.

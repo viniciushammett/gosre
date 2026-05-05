@@ -16,9 +16,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/viniciushammett/gosre/gosre-agent/internal/check"
-	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 	"github.com/viniciushammett/gosre/gosre-events/events"
 	gosrejs "github.com/viniciushammett/gosre/gosre-events/jetstream"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 type Agent struct {
