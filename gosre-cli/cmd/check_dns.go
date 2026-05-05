@@ -9,12 +9,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 	"github.com/spf13/cobra"
 
-	"github.com/gosre/gosre-cli/internal/check"
-	"github.com/gosre/gosre-cli/internal/config"
-	"github.com/gosre/gosre-cli/internal/output"
+	"github.com/viniciushammett/gosre/gosre-cli/internal/check"
+	"github.com/viniciushammett/gosre/gosre-cli/internal/config"
+	"github.com/viniciushammett/gosre/gosre-cli/internal/output"
 )
 
 var checkDNSCmd = &cobra.Command{

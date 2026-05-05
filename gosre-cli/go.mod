@@ -1,4 +1,4 @@
-module github.com/gosre/gosre-cli
+module github.com/viniciushammett/gosre/gosre-cli
 
 go 1.26.2
 

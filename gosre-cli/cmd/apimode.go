@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/gosre/gosre-cli/internal/apiclient"
-	"github.com/gosre/gosre-cli/internal/config"
+	"github.com/viniciushammett/gosre/gosre-cli/internal/apiclient"
+	"github.com/viniciushammett/gosre/gosre-cli/internal/config"
 )
 
 // resolveAPIClient returns a configured API client if --api-url is set (flag or config).

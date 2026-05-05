@@ -11,7 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/gosre/gosre-cli/internal/config"
+	"github.com/viniciushammett/gosre/gosre-cli/internal/config"
 )
 
 var targetsCmd = &cobra.Command{

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // Format selects the output representation for check results.

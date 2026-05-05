@@ -8,7 +8,7 @@ import (
 	"io"
 	"text/tabwriter"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // Table writes results to w as an aligned tab-separated table.

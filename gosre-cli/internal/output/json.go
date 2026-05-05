@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // JSON encodes results as a JSON array to w.

@@ -3,7 +3,7 @@
 
 package main
 
-import "github.com/gosre/gosre-cli/cmd"
+import "github.com/viniciushammett/gosre/gosre-cli/cmd"
 
 func main() {
 	cmd.Execute()

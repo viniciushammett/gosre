@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	sdkclient "github.com/gosre/gosre-sdk/client"
-	"github.com/gosre/gosre-sdk/domain"
+	sdkclient "github.com/viniciushammett/gosre/gosre-sdk/client"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // Client delegates all HTTP communication to the gosre-sdk typed client,
