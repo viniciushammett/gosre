@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/gosre/gosre-sdk/client"
+	"github.com/viniciushammett/gosre/gosre-sdk/client"
 )
 
 // writeJSON writes a JSON response to w with the given status code.

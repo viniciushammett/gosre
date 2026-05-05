@@ -6,7 +6,7 @@ package store
 import (
 	"context"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // TargetStore defines persistence operations for Target entities.
