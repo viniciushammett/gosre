@@ -18,9 +18,13 @@ func Table(w io.Writer, results []domain.Result) error {
 		return err
 	}
 	for _, r := range results {
+		target := r.TargetName
+		if target == "" {
+			target = r.TargetID
+		}
 		if _, err := fmt.Fprintf(tw, "%s\t%s\t%s\t%dms\t%s\n",
 			r.Timestamp.Format("15:04:05"),
-			r.TargetID,
+			target,
 			r.Status,
 			r.Duration.Milliseconds(),
 			r.Error,
