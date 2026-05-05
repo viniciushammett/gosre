@@ -10,11 +10,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/gosre/gosre-auth/internal/domain"
-	"github.com/gosre/gosre-auth/internal/middleware"
-	authoidc "github.com/gosre/gosre-auth/internal/oidc"
-	"github.com/gosre/gosre-auth/internal/service"
-	"github.com/gosre/gosre-auth/internal/store"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/domain"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/middleware"
+	authoidc "github.com/viniciushammett/gosre/gosre-auth/internal/oidc"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/service"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/store"
 )
 
 // Handler holds the dependencies for the auth HTTP handlers.

@@ -10,9 +10,9 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/gosre/gosre-auth/internal/domain"
-	"github.com/gosre/gosre-auth/internal/service"
-	"github.com/gosre/gosre-auth/internal/store"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/domain"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/service"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/store"
 )
 
 const testSecret = "test-secret-key"

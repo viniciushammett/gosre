@@ -16,13 +16,13 @@ import (
 	_ "github.com/microsoft/go-mssqldb"
 	"go.uber.org/zap"
 
-	"github.com/gosre/gosre-auth/internal/config"
-	"github.com/gosre/gosre-auth/internal/handler"
-	"github.com/gosre/gosre-auth/internal/middleware"
-	authoidc "github.com/gosre/gosre-auth/internal/oidc"
-	"github.com/gosre/gosre-auth/internal/service"
-	"github.com/gosre/gosre-auth/internal/store"
-	"github.com/gosre/gosre-auth/internal/store/sqlstore"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/config"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/handler"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/middleware"
+	authoidc "github.com/viniciushammett/gosre/gosre-auth/internal/oidc"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/service"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/store"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/store/sqlstore"
 )
 
 func main() {

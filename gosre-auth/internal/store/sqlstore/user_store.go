@@ -12,8 +12,8 @@ import (
 
 	mssql "github.com/microsoft/go-mssqldb"
 
-	"github.com/gosre/gosre-auth/internal/domain"
-	"github.com/gosre/gosre-auth/internal/store"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/domain"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/store"
 )
 
 // SQLUserStore implements store.UserStore against Azure SQL.

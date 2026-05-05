@@ -8,7 +8,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/gosre/gosre-auth/internal/domain"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/domain"
 )
 
 var (

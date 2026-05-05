@@ -10,8 +10,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/gosre/gosre-auth/internal/domain"
-	"github.com/gosre/gosre-auth/internal/service"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/domain"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/service"
 )
 
 // claimsKey is the gin.Context key used to store validated JWT claims.

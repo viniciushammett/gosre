@@ -13,8 +13,8 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/gosre/gosre-auth/internal/domain"
-	"github.com/gosre/gosre-auth/internal/store"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/domain"
+	"github.com/viniciushammett/gosre/gosre-auth/internal/store"
 )
 
 const refreshTokenTTL = 7 * 24 * time.Hour

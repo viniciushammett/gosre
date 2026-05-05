@@ -1,4 +1,4 @@
-module github.com/gosre/gosre-auth
+module github.com/viniciushammett/gosre/gosre-auth
 
 go 1.26.2
 
