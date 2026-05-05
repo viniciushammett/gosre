@@ -6,10 +6,12 @@ package client_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/viniciushammett/gosre/gosre-sdk/client"
 )
@@ -238,5 +240,28 @@ func TestRetry(t *testing.T) {
 	}
 	if n := calls.Load(); n != 3 {
 		t.Errorf("server called %d times, want 3", n)
+	}
+}
+
+func TestContextTimeout(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-r.Context().Done():
+		case <-time.After(5 * time.Second):
+		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	c := client.New(srv.URL, "")
+	_, err := c.ListTargets(ctx)
+	if err == nil {
+		t.Fatal("expected error on context timeout, got nil")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("expected context.DeadlineExceeded, got: %v", err)
 	}
 }
