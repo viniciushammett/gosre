@@ -135,8 +135,12 @@ type RegisterAgentRequest struct {
 }
 
 // ListResultsParams holds optional query parameters for ListResults.
+// From and To are encoded as RFC3339 strings; zero values are omitted.
 type ListResultsParams struct {
 	TargetID string
+	Status   string
+	From     time.Time
+	To       time.Time
 }
 
 // ListIncidentsParams holds optional query parameters for ListIncidents.
@@ -370,9 +374,22 @@ func (c *Client) RunCheck(ctx context.Context, id string) (*Result, error) {
 // ListResults calls GET /api/v1/results.
 // Pass a zero-value ListResultsParams to return all results.
 func (c *Client) ListResults(ctx context.Context, params ListResultsParams) ([]Result, error) {
-	path := "/api/v1/results"
+	q := url.Values{}
 	if params.TargetID != "" {
-		path += "?" + url.Values{"target_id": {params.TargetID}}.Encode()
+		q.Set("target_id", params.TargetID)
+	}
+	if params.Status != "" {
+		q.Set("status", params.Status)
+	}
+	if !params.From.IsZero() {
+		q.Set("from", params.From.Format(time.RFC3339))
+	}
+	if !params.To.IsZero() {
+		q.Set("to", params.To.Format(time.RFC3339))
+	}
+	path := "/api/v1/results"
+	if len(q) > 0 {
+		path += "?" + q.Encode()
 	}
 	resp, err := c.do(ctx, http.MethodGet, path, nil)
 	if err != nil {
