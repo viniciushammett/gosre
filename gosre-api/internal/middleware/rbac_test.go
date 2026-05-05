@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/gosre/gosre-api/internal/middleware"
+	"github.com/viniciushammett/gosre/gosre-api/internal/middleware"
 )
 
 const testSecret = "test-secret-key"

@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // Save inserts or replaces a Target in the database.

@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // CheckStore implements store.CheckStore for Azure SQL.

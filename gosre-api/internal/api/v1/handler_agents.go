@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // AgentRecord is the shared data contract between the handler and agent store implementations.

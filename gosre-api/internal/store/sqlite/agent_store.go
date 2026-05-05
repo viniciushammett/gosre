@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	v1 "github.com/gosre/gosre-api/internal/api/v1"
+	v1 "github.com/viniciushammett/gosre/gosre-api/internal/api/v1"
 )
 
 // AgentRecord is a type alias for the shared agent record type defined in the API handler.

@@ -16,16 +16,16 @@ import (
 	natsjets "github.com/nats-io/nats.go/jetstream"
 	"go.uber.org/zap"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 	gosrejs "github.com/viniciushammett/gosre/gosre-events/jetstream"
 
-	v1 "github.com/gosre/gosre-api/internal/api/v1"
-	"github.com/gosre/gosre-api/internal/check"
-	"github.com/gosre/gosre-api/internal/consumer"
-	"github.com/gosre/gosre-api/internal/middleware"
-	"github.com/gosre/gosre-api/internal/service"
-	"github.com/gosre/gosre-api/internal/store/azuresql"
-	"github.com/gosre/gosre-api/internal/store/sqlite"
+	v1 "github.com/viniciushammett/gosre/gosre-api/internal/api/v1"
+	"github.com/viniciushammett/gosre/gosre-api/internal/check"
+	"github.com/viniciushammett/gosre/gosre-api/internal/consumer"
+	"github.com/viniciushammett/gosre/gosre-api/internal/middleware"
+	"github.com/viniciushammett/gosre/gosre-api/internal/service"
+	"github.com/viniciushammett/gosre/gosre-api/internal/store/azuresql"
+	"github.com/viniciushammett/gosre/gosre-api/internal/store/sqlite"
 )
 
 func main() {

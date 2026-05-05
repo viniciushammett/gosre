@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gosre/gosre-sdk/domain"
-	"github.com/gosre/gosre-sdk/store"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/store"
 )
 
 const defaultCheckTimeout = 10 * time.Second

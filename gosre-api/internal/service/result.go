@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gosre/gosre-sdk/domain"
-	"github.com/gosre/gosre-sdk/store"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/store"
 	"github.com/viniciushammett/gosre/gosre-events/events"
 	gosrejs "github.com/viniciushammett/gosre/gosre-events/jetstream"
 )

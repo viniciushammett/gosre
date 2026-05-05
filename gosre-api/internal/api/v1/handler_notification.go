@@ -9,9 +9,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 
-	"github.com/gosre/gosre-api/internal/service"
+	"github.com/viniciushammett/gosre/gosre-api/internal/service"
 )
 
 // NotificationHandler handles HTTP requests for notification channel and rule resources.

@@ -1,4 +1,4 @@
-module github.com/gosre/gosre-api
+module github.com/viniciushammett/gosre/gosre-api
 
 go 1.26.2
 
@@ -8,7 +8,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0
-	github.com/gosre/gosre-sdk v0.0.0-00010101000000-000000000000
+	github.com/viniciushammett/gosre/gosre-sdk v0.0.0-00010101000000-000000000000
 	github.com/mattn/go-sqlite3 v1.14.42
 	github.com/microsoft/go-mssqldb v1.9.8
 	github.com/nats-io/nats.go v1.51.0
@@ -17,7 +17,7 @@ require (
 	go.uber.org/zap v1.27.1
 )
 
-replace github.com/gosre/gosre-sdk => ../gosre-sdk
+replace github.com/viniciushammett/gosre/gosre-sdk => ../gosre-sdk
 
 replace github.com/viniciushammett/gosre/gosre-events => ../gosre-events
 

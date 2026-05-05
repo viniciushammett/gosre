@@ -12,8 +12,8 @@ import (
 	natsjets "github.com/nats-io/nats.go/jetstream"
 	"go.uber.org/zap"
 
-	"github.com/gosre/gosre-api/internal/service"
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-api/internal/service"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 	"github.com/viniciushammett/gosre/gosre-events/events"
 	gosrejs "github.com/viniciushammett/gosre/gosre-events/jetstream"
 )

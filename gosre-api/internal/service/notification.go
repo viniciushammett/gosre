@@ -8,8 +8,8 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	"github.com/gosre/gosre-sdk/domain"
-	"github.com/gosre/gosre-sdk/store"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/store"
 )
 
 // NotificationService handles business logic for NotificationChannel and NotificationRule entities.
