@@ -1,9 +1,9 @@
-module github.com/gosre/gosre-agent
+module github.com/viniciushammett/gosre/gosre-agent
 
 go 1.26.2
 
 require (
-	github.com/gosre/gosre-sdk v0.0.0-00010101000000-000000000000
+	github.com/viniciushammett/gosre/gosre-sdk v0.0.0-00010101000000-000000000000
 	github.com/nats-io/nats.go v1.51.0
 	github.com/viniciushammett/gosre/gosre-events v0.0.0-00010101000000-000000000000
 	go.uber.org/zap v1.27.1
@@ -21,6 +21,6 @@ require (
 	golang.org/x/sys v0.43.0 // indirect
 )
 
-replace github.com/gosre/gosre-sdk => ../gosre-sdk
+replace github.com/viniciushammett/gosre/gosre-sdk => ../gosre-sdk
 
 replace github.com/viniciushammett/gosre/gosre-events => ../gosre-events

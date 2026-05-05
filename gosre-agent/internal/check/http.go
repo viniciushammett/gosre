@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // HTTPChecker executes an HTTP GET check against a Target.

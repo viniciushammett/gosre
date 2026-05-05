@@ -14,7 +14,7 @@ import (
 	natsjets "github.com/nats-io/nats.go/jetstream"
 	"go.uber.org/zap"
 
-	"github.com/gosre/gosre-agent/internal/agent"
+	"github.com/viniciushammett/gosre/gosre-agent/internal/agent"
 	gosrejs "github.com/viniciushammett/gosre/gosre-events/jetstream"
 )
 

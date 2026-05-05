@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 const defaultExpiryThresholdDays = 14
