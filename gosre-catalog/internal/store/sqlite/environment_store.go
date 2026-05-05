@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 var errEnvironmentNotFound = errors.New("environment not found")

@@ -9,7 +9,7 @@ import (
 	"net/smtp"
 	"strings"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // EmailSender sends notifications via SMTP using net/smtp.

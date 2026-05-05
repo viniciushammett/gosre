@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gosre/gosre-sdk/domain"
-	"github.com/gosre/gosre-sdk/store"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/store"
 )
 
 // ErrServiceNotFound is returned when a Service does not exist.

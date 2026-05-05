@@ -7,7 +7,7 @@ package channel
 import (
 	"context"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // Message holds the human-readable content sent to a notification channel.

@@ -13,9 +13,9 @@ import (
 
 	"go.uber.org/zap"
 
-	sdkclient "github.com/gosre/gosre-sdk/client"
-	"github.com/gosre/gosre-sdk/domain"
-	"github.com/gosre/gosre-sdk/store"
+	sdkclient "github.com/viniciushammett/gosre/gosre-sdk/client"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/store"
 	"github.com/viniciushammett/gosre/gosre-events/events"
 	"github.com/viniciushammett/gosre/gosre-events/jetstream"
 	"github.com/viniciushammett/gosre/gosre-scheduler/internal/hash"

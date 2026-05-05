@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 // Client fetches notification rules and channels from gosre-api.

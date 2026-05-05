@@ -3,7 +3,7 @@ module github.com/viniciushammett/gosre/gosre-scheduler
 go 1.26.2
 
 require (
-	github.com/gosre/gosre-sdk v0.0.0-00010101000000-000000000000
+	github.com/viniciushammett/gosre/gosre-sdk v0.0.0-00010101000000-000000000000
 	github.com/nats-io/nats.go v1.51.0
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/viniciushammett/gosre/gosre-events v0.0.0-00010101000000-000000000000
@@ -27,6 +27,6 @@ require (
 )
 
 replace (
-	github.com/gosre/gosre-sdk => ../gosre-sdk
+	github.com/viniciushammett/gosre/gosre-sdk => ../gosre-sdk
 	github.com/viniciushammett/gosre/gosre-events => ../gosre-events
 )

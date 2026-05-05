@@ -20,7 +20,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
-	"github.com/gosre/gosre-sdk/domain"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 	"github.com/viniciushammett/gosre/gosre-events/events"
 	gosrejs "github.com/viniciushammett/gosre/gosre-events/jetstream"
 

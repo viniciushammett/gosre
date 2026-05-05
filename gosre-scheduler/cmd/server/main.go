@@ -15,7 +15,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	sdkclient "github.com/gosre/gosre-sdk/client"
+	sdkclient "github.com/viniciushammett/gosre/gosre-sdk/client"
 	eventsjetstream "github.com/viniciushammett/gosre/gosre-events/jetstream"
 	"github.com/viniciushammett/gosre/gosre-scheduler/internal/scheduler"
 	redisstore "github.com/viniciushammett/gosre/gosre-scheduler/internal/store/redis"
