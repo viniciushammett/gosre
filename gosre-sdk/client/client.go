@@ -148,6 +148,97 @@ type ListIncidentsParams struct {
 	State string
 }
 
+// SLO mirrors the gosre-api SLO object.
+// WindowSeconds is the observation window expressed in seconds (not time.Duration).
+type SLO struct {
+	ID            string  `json:"id,omitempty"`
+	TargetID      string  `json:"target_id"`
+	Name          string  `json:"name"`
+	Metric        string  `json:"metric"`
+	Threshold     float64 `json:"threshold"`
+	WindowSeconds int64   `json:"window_seconds"`
+}
+
+// SLOBudget mirrors the error-budget calculation returned by GET /api/v1/slos/:id/budget.
+type SLOBudget struct {
+	SLOID            string  `json:"slo_id"`
+	TargetID         string  `json:"target_id"`
+	Compliance       float64 `json:"compliance"`
+	BurnRate1h       float64 `json:"burn_rate_1h"`
+	BurnRate6h       float64 `json:"burn_rate_6h"`
+	BurnRate24h      float64 `json:"burn_rate_24h"`
+	InsufficientData bool    `json:"insufficient_data"`
+	TotalResults     int     `json:"total_results"`
+}
+
+// CreateSLORequest is the body for POST /api/v1/slos.
+type CreateSLORequest struct {
+	TargetID      string  `json:"target_id"`
+	Name          string  `json:"name"`
+	Metric        string  `json:"metric"`
+	Threshold     float64 `json:"threshold"`
+	WindowSeconds int64   `json:"window_seconds"`
+}
+
+// ListSLOsParams holds optional query parameters for ListSLOs.
+type ListSLOsParams struct {
+	TargetID string
+}
+
+// Organization mirrors the gosre-api organization object.
+type Organization struct {
+	ID        string    `json:"id,omitempty"`
+	Name      string    `json:"name"`
+	Slug      string    `json:"slug,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// CreateOrgRequest is the body for POST /api/v1/organizations.
+type CreateOrgRequest struct {
+	Name string `json:"name"`
+	Slug string `json:"slug,omitempty"`
+}
+
+// Team mirrors the gosre-api team object.
+type Team struct {
+	ID             string    `json:"id,omitempty"`
+	OrganizationID string    `json:"organization_id,omitempty"`
+	Name           string    `json:"name"`
+	Slug           string    `json:"slug,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+// CreateTeamRequest is the body for POST /api/v1/organizations/:org_id/teams.
+type CreateTeamRequest struct {
+	Name string `json:"name"`
+	Slug string `json:"slug,omitempty"`
+}
+
+// Project mirrors the gosre-api project object.
+type Project struct {
+	ID             string    `json:"id,omitempty"`
+	OrganizationID string    `json:"organization_id,omitempty"`
+	TeamID         string    `json:"team_id,omitempty"`
+	Name           string    `json:"name"`
+	Slug           string    `json:"slug,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+// CreateProjectRequest is the body for POST /api/v1/organizations/:org_id/projects.
+type CreateProjectRequest struct {
+	Name   string `json:"name"`
+	Slug   string `json:"slug,omitempty"`
+	TeamID string `json:"team_id,omitempty"`
+}
+
+// SchedulerStatus mirrors the response from GET /api/v1/scheduler/status.
+type SchedulerStatus struct {
+	AgentsActive        int            `json:"agents_active"`
+	AgentsDown          int            `json:"agents_down"`
+	TotalChecks         int            `json:"total_checks"`
+	AssignmentsPerAgent map[string]int `json:"assignments_per_agent"`
+}
+
 // ── Internal envelope and helpers ─────────────────────────────────────────────
 
 type envelope[T any] struct {
@@ -476,4 +567,221 @@ func (c *Client) AgentHeartbeat(ctx context.Context, id string) error {
 		return err
 	}
 	return expectNoContent(resp)
+}
+
+// ── SLOs ──────────────────────────────────────────────────────────────────────
+
+// ListSLOs calls GET /api/v1/slos.
+// Pass a zero-value ListSLOsParams to return all SLOs.
+func (c *Client) ListSLOs(ctx context.Context, params ListSLOsParams) ([]SLO, error) {
+	path := "/api/v1/slos"
+	if params.TargetID != "" {
+		path += "?" + url.Values{"target_id": {params.TargetID}}.Encode()
+	}
+	resp, err := c.do(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+	return decode[[]SLO](resp)
+}
+
+// CreateSLO calls POST /api/v1/slos.
+func (c *Client) CreateSLO(ctx context.Context, req CreateSLORequest) (*SLO, error) {
+	resp, err := c.do(ctx, http.MethodPost, "/api/v1/slos", req)
+	if err != nil {
+		return nil, err
+	}
+	s, err := decode[SLO](resp)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+// GetSLO calls GET /api/v1/slos/:id.
+func (c *Client) GetSLO(ctx context.Context, id string) (*SLO, error) {
+	resp, err := c.do(ctx, http.MethodGet, "/api/v1/slos/"+id, nil)
+	if err != nil {
+		return nil, err
+	}
+	s, err := decode[SLO](resp)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+// DeleteSLO calls DELETE /api/v1/slos/:id.
+func (c *Client) DeleteSLO(ctx context.Context, id string) error {
+	resp, err := c.do(ctx, http.MethodDelete, "/api/v1/slos/"+id, nil)
+	if err != nil {
+		return err
+	}
+	return expectNoContent(resp)
+}
+
+// GetSLOBudget calls GET /api/v1/slos/:id/budget.
+func (c *Client) GetSLOBudget(ctx context.Context, id string) (*SLOBudget, error) {
+	resp, err := c.do(ctx, http.MethodGet, "/api/v1/slos/"+id+"/budget", nil)
+	if err != nil {
+		return nil, err
+	}
+	b, err := decode[SLOBudget](resp)
+	if err != nil {
+		return nil, err
+	}
+	return &b, nil
+}
+
+// ── Organizations ─────────────────────────────────────────────────────────────
+
+// ListOrganizations calls GET /api/v1/organizations.
+func (c *Client) ListOrganizations(ctx context.Context) ([]Organization, error) {
+	resp, err := c.do(ctx, http.MethodGet, "/api/v1/organizations", nil)
+	if err != nil {
+		return nil, err
+	}
+	return decode[[]Organization](resp)
+}
+
+// CreateOrganization calls POST /api/v1/organizations.
+func (c *Client) CreateOrganization(ctx context.Context, req CreateOrgRequest) (*Organization, error) {
+	resp, err := c.do(ctx, http.MethodPost, "/api/v1/organizations", req)
+	if err != nil {
+		return nil, err
+	}
+	o, err := decode[Organization](resp)
+	if err != nil {
+		return nil, err
+	}
+	return &o, nil
+}
+
+// GetOrganization calls GET /api/v1/organizations/:org_id.
+func (c *Client) GetOrganization(ctx context.Context, orgID string) (*Organization, error) {
+	resp, err := c.do(ctx, http.MethodGet, "/api/v1/organizations/"+orgID, nil)
+	if err != nil {
+		return nil, err
+	}
+	o, err := decode[Organization](resp)
+	if err != nil {
+		return nil, err
+	}
+	return &o, nil
+}
+
+// DeleteOrganization calls DELETE /api/v1/organizations/:org_id.
+func (c *Client) DeleteOrganization(ctx context.Context, orgID string) error {
+	resp, err := c.do(ctx, http.MethodDelete, "/api/v1/organizations/"+orgID, nil)
+	if err != nil {
+		return err
+	}
+	return expectNoContent(resp)
+}
+
+// ── Teams ─────────────────────────────────────────────────────────────────────
+
+// ListTeams calls GET /api/v1/organizations/:org_id/teams.
+func (c *Client) ListTeams(ctx context.Context, orgID string) ([]Team, error) {
+	resp, err := c.do(ctx, http.MethodGet, "/api/v1/organizations/"+orgID+"/teams", nil)
+	if err != nil {
+		return nil, err
+	}
+	return decode[[]Team](resp)
+}
+
+// CreateTeam calls POST /api/v1/organizations/:org_id/teams.
+func (c *Client) CreateTeam(ctx context.Context, orgID string, req CreateTeamRequest) (*Team, error) {
+	resp, err := c.do(ctx, http.MethodPost, "/api/v1/organizations/"+orgID+"/teams", req)
+	if err != nil {
+		return nil, err
+	}
+	t, err := decode[Team](resp)
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
+// GetTeam calls GET /api/v1/organizations/:org_id/teams/:id.
+func (c *Client) GetTeam(ctx context.Context, orgID, teamID string) (*Team, error) {
+	resp, err := c.do(ctx, http.MethodGet, "/api/v1/organizations/"+orgID+"/teams/"+teamID, nil)
+	if err != nil {
+		return nil, err
+	}
+	t, err := decode[Team](resp)
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
+// DeleteTeam calls DELETE /api/v1/organizations/:org_id/teams/:id.
+func (c *Client) DeleteTeam(ctx context.Context, orgID, teamID string) error {
+	resp, err := c.do(ctx, http.MethodDelete, "/api/v1/organizations/"+orgID+"/teams/"+teamID, nil)
+	if err != nil {
+		return err
+	}
+	return expectNoContent(resp)
+}
+
+// ── Projects ──────────────────────────────────────────────────────────────────
+
+// ListProjects calls GET /api/v1/organizations/:org_id/projects.
+func (c *Client) ListProjects(ctx context.Context, orgID string) ([]Project, error) {
+	resp, err := c.do(ctx, http.MethodGet, "/api/v1/organizations/"+orgID+"/projects", nil)
+	if err != nil {
+		return nil, err
+	}
+	return decode[[]Project](resp)
+}
+
+// CreateProject calls POST /api/v1/organizations/:org_id/projects.
+func (c *Client) CreateProject(ctx context.Context, orgID string, req CreateProjectRequest) (*Project, error) {
+	resp, err := c.do(ctx, http.MethodPost, "/api/v1/organizations/"+orgID+"/projects", req)
+	if err != nil {
+		return nil, err
+	}
+	p, err := decode[Project](resp)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// GetProject calls GET /api/v1/organizations/:org_id/projects/:id.
+func (c *Client) GetProject(ctx context.Context, orgID, projectID string) (*Project, error) {
+	resp, err := c.do(ctx, http.MethodGet, "/api/v1/organizations/"+orgID+"/projects/"+projectID, nil)
+	if err != nil {
+		return nil, err
+	}
+	p, err := decode[Project](resp)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DeleteProject calls DELETE /api/v1/organizations/:org_id/projects/:id.
+func (c *Client) DeleteProject(ctx context.Context, orgID, projectID string) error {
+	resp, err := c.do(ctx, http.MethodDelete, "/api/v1/organizations/"+orgID+"/projects/"+projectID, nil)
+	if err != nil {
+		return err
+	}
+	return expectNoContent(resp)
+}
+
+// ── Scheduler ─────────────────────────────────────────────────────────────────
+
+// GetSchedulerStatus calls GET /api/v1/scheduler/status.
+func (c *Client) GetSchedulerStatus(ctx context.Context) (*SchedulerStatus, error) {
+	resp, err := c.do(ctx, http.MethodGet, "/api/v1/scheduler/status", nil)
+	if err != nil {
+		return nil, err
+	}
+	s, err := decode[SchedulerStatus](resp)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
 }
