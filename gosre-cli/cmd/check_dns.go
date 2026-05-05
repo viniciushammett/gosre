@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 	"github.com/spf13/cobra"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 
 	"github.com/viniciushammett/gosre/gosre-cli/internal/check"
 	"github.com/viniciushammett/gosre/gosre-cli/internal/config"

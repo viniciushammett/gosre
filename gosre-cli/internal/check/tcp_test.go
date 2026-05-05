@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 func TestTCPChecker_Execute(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 	"github.com/stretchr/testify/assert"
+	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 func TestHTTPChecker_Execute(t *testing.T) {
