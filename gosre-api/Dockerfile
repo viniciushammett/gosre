@@ -7,8 +7,9 @@ FROM golang:1.26-bookworm AS builder
 WORKDIR /src
 
 # go-sqlite3 requires CGO; copy both modules to satisfy replace directive
-COPY gosre-sdk/  /src/gosre-sdk/
-COPY gosre-api/  /src/gosre-api/
+COPY gosre-sdk/    /src/gosre-sdk/
+COPY gosre-events/ /src/gosre-events/
+COPY gosre-api/    /src/gosre-api/
 
 WORKDIR /src/gosre-api
 
