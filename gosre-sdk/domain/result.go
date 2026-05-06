@@ -5,6 +5,15 @@ package domain
 
 import "time"
 
+// ResultFilter constrains the result set returned by ResultStore.ListFiltered.
+// All fields are optional — zero values mean "no constraint on this field".
+type ResultFilter struct {
+	TargetID string
+	Status   CheckStatus
+	From     time.Time
+	To       time.Time
+}
+
 // CheckStatus represents the outcome of a single check execution.
 type CheckStatus string
 

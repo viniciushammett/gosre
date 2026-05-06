@@ -78,6 +78,51 @@ func (s *ResultStore) List(ctx context.Context) ([]domain.Result, error) {
 	return results, nil
 }
 
+// ListFiltered returns Results matching the given filter, ordered by timestamp DESC.
+// All filter fields are optional; zero values impose no constraint.
+func (s *ResultStore) ListFiltered(ctx context.Context, f domain.ResultFilter) ([]domain.Result, error) {
+	q := `SELECT id, check_id, target_id, agent_id, status, duration, error, timestamp, metadata, project_id, target_name
+	      FROM results WHERE 1=1`
+	args := make([]any, 0, 4)
+
+	if f.TargetID != "" {
+		q += " AND target_id = ?"
+		args = append(args, f.TargetID)
+	}
+	if f.Status != "" {
+		q += " AND status = ?"
+		args = append(args, string(f.Status))
+	}
+	if !f.From.IsZero() {
+		q += " AND timestamp >= ?"
+		args = append(args, f.From.UTC().Format(time.RFC3339Nano))
+	}
+	if !f.To.IsZero() {
+		q += " AND timestamp <= ?"
+		args = append(args, f.To.UTC().Format(time.RFC3339Nano))
+	}
+	q += " ORDER BY timestamp DESC"
+
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("sqlite: list filtered results: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	results := make([]domain.Result, 0)
+	for rows.Next() {
+		r, err := scanResult(rows)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("sqlite: iterate filtered results: %w", err)
+	}
+	return results, nil
+}
+
 // DeleteByTargetID removes all Results associated with the given targetID.
 func (s *ResultStore) DeleteByTargetID(ctx context.Context, targetID string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM results WHERE target_id = ?`, targetID)

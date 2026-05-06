@@ -67,3 +67,8 @@ func (svc *ResultService) List(ctx context.Context, targetID string) ([]domain.R
 	}
 	return svc.store.List(ctx)
 }
+
+// ListFiltered returns Results matching the given filter.
+func (svc *ResultService) ListFiltered(ctx context.Context, f domain.ResultFilter) ([]domain.Result, error) {
+	return svc.store.ListFiltered(ctx, f)
+}

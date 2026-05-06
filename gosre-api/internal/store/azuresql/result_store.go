@@ -110,6 +110,56 @@ func (s *ResultStore) ListByTarget(ctx context.Context, targetID string) ([]doma
 	return results, nil
 }
 
+// ListFiltered returns Results matching the given filter, ordered by timestamp DESC.
+// All filter fields are optional; zero values impose no constraint.
+func (s *ResultStore) ListFiltered(ctx context.Context, f domain.ResultFilter) ([]domain.Result, error) {
+	q := `SELECT id, check_id, target_id, agent_id, status, duration_ns, error, timestamp, metadata, project_id, target_name
+	      FROM results WHERE 1=1`
+	args := make([]any, 0, 4)
+	p := 1
+
+	if f.TargetID != "" {
+		q += fmt.Sprintf(" AND target_id = @p%d", p)
+		args = append(args, f.TargetID)
+		p++
+	}
+	if f.Status != "" {
+		q += fmt.Sprintf(" AND status = @p%d", p)
+		args = append(args, string(f.Status))
+		p++
+	}
+	if !f.From.IsZero() {
+		q += fmt.Sprintf(" AND timestamp >= @p%d", p)
+		args = append(args, f.From.UTC())
+		p++
+	}
+	if !f.To.IsZero() {
+		q += fmt.Sprintf(" AND timestamp <= @p%d", p)
+		args = append(args, f.To.UTC())
+		p++
+	}
+	q += " ORDER BY timestamp DESC"
+
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("azuresql: list filtered results: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	results := make([]domain.Result, 0)
+	for rows.Next() {
+		r, err := scanResult(rows)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("azuresql: iterate filtered results: %w", err)
+	}
+	return results, nil
+}
+
 // DeleteByTargetID removes all Results associated with the given targetID.
 func (s *ResultStore) DeleteByTargetID(ctx context.Context, targetID string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM results WHERE target_id = @p1`, targetID)

@@ -23,6 +23,7 @@ type ResultStore interface {
 	Get(ctx context.Context, id string) (domain.Result, error)
 	List(ctx context.Context) ([]domain.Result, error)
 	ListByTarget(ctx context.Context, targetID string) ([]domain.Result, error)
+	ListFiltered(ctx context.Context, f domain.ResultFilter) ([]domain.Result, error)
 	DeleteByTargetID(ctx context.Context, targetID string) error
 }
 

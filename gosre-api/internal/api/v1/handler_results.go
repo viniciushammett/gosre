@@ -64,9 +64,32 @@ func (h *ResultHandler) PostResult(c *gin.Context) {
 }
 
 // ListResults handles GET /api/v1/results.
-// Accepts optional query param: target_id.
+// Accepts optional query params: target_id, status, from (RFC3339), to (RFC3339).
 func (h *ResultHandler) ListResults(c *gin.Context) {
-	results, err := h.svc.List(c.Request.Context(), c.Query("target_id"))
+	f := domain.ResultFilter{
+		TargetID: c.Query("target_id"),
+		Status:   domain.CheckStatus(c.Query("status")),
+	}
+
+	if raw := c.Query("from"); raw != "" {
+		t, err := time.Parse(time.RFC3339, raw)
+		if err != nil {
+			Fail(c, http.StatusBadRequest, "invalid_param", "from: must be RFC3339")
+			return
+		}
+		f.From = t
+	}
+
+	if raw := c.Query("to"); raw != "" {
+		t, err := time.Parse(time.RFC3339, raw)
+		if err != nil {
+			Fail(c, http.StatusBadRequest, "invalid_param", "to: must be RFC3339")
+			return
+		}
+		f.To = t
+	}
+
+	results, err := h.svc.ListFiltered(c.Request.Context(), f)
 	if err != nil {
 		Fail(c, http.StatusInternalServerError, "internal_error", err.Error())
 		return
