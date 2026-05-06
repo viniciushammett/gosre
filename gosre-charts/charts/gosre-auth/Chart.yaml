@@ -1,0 +1,5 @@
+apiVersion: v2
+name: gosre-auth
+description: GoSRE Auth — JWT authentication and GitHub OAuth provider
+version: 0.1.0
+appVersion: "0.1.0"

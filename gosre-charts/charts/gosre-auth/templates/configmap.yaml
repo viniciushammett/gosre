@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "gosre-auth.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gosre-auth.labels" . | nindent 4 }}
+data:
+  PORT: {{ .Values.env.port | quote }}
+  GOSRE_REDIS_URL: {{ .Values.env.redisURL | quote }}
+  GITHUB_REDIRECT_URL: {{ .Values.env.githubRedirectURL | quote }}

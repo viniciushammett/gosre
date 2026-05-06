@@ -1,0 +1,22 @@
+replicaCount: 1
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+image:
+  repository: ghcr.io/viniciushammett/gosre/gosre-catalog
+  tag: "latest"
+  pullPolicy: Always
+
+env:
+  port: "8081"
+
+databaseURL: ""
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

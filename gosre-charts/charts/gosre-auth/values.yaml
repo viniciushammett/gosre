@@ -1,0 +1,27 @@
+replicaCount: 1
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+image:
+  repository: ghcr.io/viniciushammett/gosre/gosre-auth
+  tag: "latest"
+  pullPolicy: Always
+
+env:
+  port: "8081"
+  redisURL: "redis://gosre-redis-master:6379"
+  githubRedirectURL: "http://localhost:8081/auth/github/callback"
+
+jwtSecret: ""
+databaseURL: ""
+githubClientID: ""
+githubClientSecret: ""
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

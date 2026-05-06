@@ -1,0 +1,5 @@
+apiVersion: v2
+name: gosre-catalog
+description: GoSRE Catalog — service catalog, dependency graph and environment registry
+version: 0.1.0
+appVersion: "0.1.0"

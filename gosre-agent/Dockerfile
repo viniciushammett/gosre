@@ -6,8 +6,9 @@ FROM golang:1.26-bookworm AS builder
 
 WORKDIR /src
 
-COPY gosre-sdk/   /src/gosre-sdk/
-COPY gosre-agent/ /src/gosre-agent/
+COPY gosre-sdk/    /src/gosre-sdk/
+COPY gosre-events/ /src/gosre-events/
+COPY gosre-agent/  /src/gosre-agent/
 
 WORKDIR /src/gosre-agent
 
