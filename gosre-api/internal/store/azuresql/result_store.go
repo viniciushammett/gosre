@@ -136,7 +136,6 @@ func (s *ResultStore) ListFiltered(ctx context.Context, f domain.ResultFilter) (
 	if !f.To.IsZero() {
 		q += fmt.Sprintf(" AND timestamp <= @p%d", p)
 		args = append(args, f.To.UTC())
-		p++
 	}
 	q += " ORDER BY timestamp DESC"
 

@@ -54,10 +54,10 @@ func TestTable(t *testing.T) {
 			},
 		},
 		{
-			name:    "empty results — no data rows",
-			results: []domain.Result{},
+			name:     "empty results — no data rows",
+			results:  []domain.Result{},
 			contains: []string{"TIMESTAMP"},
-			absent:  []string{"my-api", "ok"},
+			absent:   []string{"my-api", "ok"},
 		},
 		{
 			name:    "single ok result with TargetName",
@@ -70,7 +70,7 @@ func TestTable(t *testing.T) {
 			},
 		},
 		{
-			name: "result without TargetName falls back to TargetID",
+			name:    "result without TargetName falls back to TargetID",
 			results: []domain.Result{resultFail},
 			contains: []string{
 				"t2",

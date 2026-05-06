@@ -11,10 +11,10 @@ import (
 
 func TestLoad(t *testing.T) {
 	tests := []struct {
-		name      string
-		fileYAML  string // empty = no file written
-		wantErr   bool
-		check     func(t *testing.T, cfg *Config)
+		name     string
+		fileYAML string // empty = no file written
+		wantErr  bool
+		check    func(t *testing.T, cfg *Config)
 	}{
 		{
 			name:     "absent config returns empty Config without error",

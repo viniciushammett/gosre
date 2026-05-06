@@ -67,8 +67,8 @@ func TestStableID(t *testing.T) {
 
 // apiEnvelope mirrors the gosre-api standard response wrapper.
 type apiEnvelope struct {
-	Data  any      `json:"data"`
-	Error *apiErr  `json:"error"`
+	Data  any     `json:"data"`
+	Error *apiErr `json:"error"`
 }
 
 type apiErr struct {
