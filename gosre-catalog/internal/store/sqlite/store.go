@@ -52,7 +52,9 @@ func runMigrations(db *sql.DB) error {
 		return fmt.Errorf("sqlite: create migration source: %w", err)
 	}
 
-	driver, err := sqlite3db.WithInstance(db, &sqlite3db.Config{})
+	driver, err := sqlite3db.WithInstance(db, &sqlite3db.Config{
+		MigrationsTable: "schema_migrations_catalog",
+	})
 	if err != nil {
 		return fmt.Errorf("sqlite: create migration driver: %w", err)
 	}

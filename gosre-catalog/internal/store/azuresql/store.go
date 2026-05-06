@@ -58,7 +58,9 @@ func runMigrations(db *sql.DB) error {
 		return fmt.Errorf("azuresql: create migration source: %w", err)
 	}
 
-	driver, err := sqlservermigrate.WithInstance(db, &sqlservermigrate.Config{})
+	driver, err := sqlservermigrate.WithInstance(db, &sqlservermigrate.Config{
+		MigrationsTable: "schema_migrations_catalog",
+	})
 	if err != nil {
 		return fmt.Errorf("azuresql: create migration driver: %w", err)
 	}
