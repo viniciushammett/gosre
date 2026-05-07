@@ -50,13 +50,13 @@ spec:
                   key: api-key
           readinessProbe:
             httpGet:
-              path: /metrics
+              path: /healthz
               port: 9090
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /metrics
+              path: /healthz
               port: 9090
             initialDelaySeconds: 10
             periodSeconds: 30
