@@ -6,6 +6,7 @@ package middleware
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +28,14 @@ func JWT(secret string) gin.HandlerFunc {
 	key := []byte(secret)
 
 	return func(c *gin.Context) {
+		if apiKey := os.Getenv("GOSRE_API_KEY"); apiKey != "" {
+			if c.GetHeader("X-API-Key") == apiKey {
+				c.Set(claimsKey, Claims{UserID: "exporter", Email: "", Role: "operator"})
+				c.Next()
+				return
+			}
+		}
+
 		header := c.GetHeader("Authorization")
 		if !strings.HasPrefix(header, "Bearer ") {
 			abortUnauthorized(c, "missing bearer token")
