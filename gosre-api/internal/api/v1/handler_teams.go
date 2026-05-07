@@ -51,6 +51,16 @@ func (h *TeamHandler) Create(c *gin.Context) {
 		Slug:           req.Slug,
 	})
 	if err != nil {
+		if errors.Is(err, service.ErrTeamSlugConflict) {
+			c.JSON(http.StatusConflict, gin.H{
+				"data": nil,
+				"error": gin.H{
+					"code":    "slug_conflict",
+					"message": "slug already in use in this organization",
+				},
+			})
+			return
+		}
 		Fail(c, http.StatusBadRequest, "validation_error", err.Error())
 		return
 	}
