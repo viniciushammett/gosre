@@ -8,11 +8,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/viniciushammett/gosre/gosre-sdk/domain"
 )
 
 var errTeamNotFound = errors.New("team not found")
+var errTeamSlugConflict = errors.New("slug already exists in this organization")
 
 // TeamStore implements store.TeamStore for Azure SQL.
 type TeamStore struct {
@@ -39,6 +41,9 @@ func (s *TeamStore) Save(ctx context.Context, t domain.Team) error {
 		t.ID, t.OrganizationID, t.Name, t.Slug, t.CreatedAt.UTC(),
 	)
 	if err != nil {
+		if strings.Contains(err.Error(), "UQ_teams_org_slug") {
+			return errTeamSlugConflict
+		}
 		return fmt.Errorf("azuresql: save team %q: %w", t.ID, err)
 	}
 	return nil

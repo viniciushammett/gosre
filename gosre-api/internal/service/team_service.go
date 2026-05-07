@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,6 +24,9 @@ type TeamStore interface {
 
 // ErrTeamNotFound is returned when a team does not exist.
 var ErrTeamNotFound = errors.New("team not found")
+
+// ErrTeamSlugConflict is returned when a team slug already exists in the organization.
+var ErrTeamSlugConflict = errors.New("slug already exists in this organization")
 
 // TeamService handles business logic for Team entities.
 type TeamService struct {
@@ -48,6 +52,9 @@ func (svc *TeamService) Create(ctx context.Context, t domain.Team) (domain.Team,
 	t.ID = uuid.New().String()
 	t.CreatedAt = time.Now().UTC()
 	if err := svc.store.Save(ctx, t); err != nil {
+		if strings.Contains(err.Error(), "slug already exists") {
+			return domain.Team{}, ErrTeamSlugConflict
+		}
 		return domain.Team{}, fmt.Errorf("create team: %w", err)
 	}
 	return t, nil
